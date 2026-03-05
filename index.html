@@ -1,0 +1,2602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VECTOR TRADER // ELITE</title>
+<script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg: #050508;
+  --panel: #080810;
+  --border: #1c1c2e;
+  --border-accent: #2a2a40;
+  --orange: #e8651a;
+  --orange-dim: rgba(232,101,26,0.15);
+  --green: #1adb6c;
+  --green-dim: rgba(26,219,108,0.1);
+  --red: #e8304a;
+  --red-dim: rgba(232,48,74,0.1);
+  --cyan: #1ac8e8;
+  --yellow: #e8c61a;
+  --purple: #9b6fe8;
+  --text: #c8c8d8;
+  --text-dim: #4a4a6a;
+  --text-mid: #7a7a9a;
+  --mono: 'Space Mono', monospace;
+  --sans: 'Rajdhani', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100%; height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Subtle scanlines */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.06) 2px, rgba(0,0,0,0.06) 4px);
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ─── TOP BAR ─── */
+#topbar {
+  height: 48px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border-accent);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 0;
+  flex-shrink: 0;
+}
+
+.tb-logo {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--orange);
+  letter-spacing: 3px;
+  padding-right: 20px;
+  border-right: 1px solid var(--border-accent);
+  white-space: nowrap;
+}
+
+.tb-price-block {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 0 20px;
+  border-right: 1px solid var(--border-accent);
+}
+
+.tb-pair {
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 2px;
+  font-family: var(--mono);
+}
+
+#price {
+  font-family: var(--mono);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--orange);
+  letter-spacing: 1px;
+}
+
+#delta {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 2px;
+}
+#delta.pos { color: var(--green); background: var(--green-dim); border: 1px solid rgba(26,219,108,0.2); }
+#delta.neg { color: var(--red); background: var(--red-dim); border: 1px solid rgba(232,48,74,0.2); }
+
+.tb-stats {
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  gap: 30px;
+}
+
+.tb-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.tb-stat-label {
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: 2px;
+  font-family: var(--mono);
+}
+
+.tb-stat-val {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.tb-signal {
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#sig-badge {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  padding: 5px 14px;
+  border: 1px solid var(--border-accent);
+  border-radius: 2px;
+  color: var(--text-mid);
+  background: transparent;
+  transition: all 0.3s;
+}
+
+#sig-badge.long {
+  color: var(--green);
+  border-color: rgba(26,219,108,0.3);
+  background: var(--green-dim);
+}
+
+#sig-badge.short {
+  color: var(--red);
+  border-color: rgba(232,48,74,0.3);
+  background: var(--red-dim);
+}
+
+/* ─── MAIN LAYOUT ─── */
+#layout {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 220px 1fr 240px;
+  grid-template-rows: 1fr;
+  gap: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ─── PANELS ─── */
+.panel {
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.panel:last-child { border-right: none; border-left: 1px solid var(--border); }
+
+.panel-head {
+  padding: 8px 12px;
+  background: rgba(232,101,26,0.04);
+  border-bottom: 1px solid var(--border-accent);
+  font-size: 9px;
+  font-family: var(--mono);
+  letter-spacing: 3px;
+  color: var(--orange);
+  flex-shrink: 0;
+}
+
+.panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.panel-body::-webkit-scrollbar { width: 3px; }
+.panel-body::-webkit-scrollbar-track { background: transparent; }
+.panel-body::-webkit-scrollbar-thumb { background: var(--border-accent); border-radius: 2px; }
+
+/* ─── SECTION DIVIDERS ─── */
+.section-label {
+  font-size: 8px;
+  font-family: var(--mono);
+  letter-spacing: 2px;
+  color: var(--text-dim);
+  padding: 4px 0 2px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2px;
+}
+
+/* ─── METRIC ROWS ─── */
+.metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(28,28,46,0.5);
+}
+
+.metric-label {
+  font-size: 9px;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  letter-spacing: 1px;
+}
+
+.metric-val {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* ─── RSI GAUGE ─── */
+.rsi-gauge-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+}
+
+.rsi-gauge-svg {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+}
+
+.rsi-arc-bg { fill: none; stroke: var(--border-accent); stroke-width: 6; }
+.rsi-arc { fill: none; stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset 0.4s, stroke 0.4s; }
+
+.rsi-info { flex: 1; }
+.rsi-value {
+  font-family: var(--mono);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.rsi-label {
+  font-size: 9px;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  letter-spacing: 1px;
+  margin-top: 2px;
+}
+
+.rsi-zone {
+  font-size: 9px;
+  font-family: var(--mono);
+  letter-spacing: 1px;
+  margin-top: 3px;
+}
+
+/* ─── ARTIFICIAL HORIZON ─── */
+.horizon-wrap {
+  border: 1px solid var(--border-accent);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+  height: 80px;
+  background: #060610;
+}
+
+.horizon-sky {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 50%;
+  background: linear-gradient(180deg, #051a33 0%, #083366 100%);
+  transform-origin: center bottom;
+  transition: transform 0.2s;
+}
+
+.horizon-ground {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 50%;
+  background: linear-gradient(180deg, #1a1200 0%, #0d0800 100%);
+  transform-origin: center top;
+  transition: transform 0.2s;
+}
+
+.horizon-line {
+  position: absolute;
+  top: 50%; left: 0; right: 0;
+  height: 1px;
+  background: var(--orange);
+  opacity: 0.7;
+  transition: transform 0.2s;
+}
+
+.horizon-reticle {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.horizon-wing {
+  width: 28px; height: 2px;
+  background: var(--yellow);
+  opacity: 0.85;
+}
+
+.horizon-center-dot {
+  width: 6px; height: 6px;
+  border: 1px solid var(--yellow);
+  border-radius: 50%;
+  margin: 0 2px;
+  opacity: 0.85;
+}
+
+.horizon-label {
+  position: absolute;
+  bottom: 3px; right: 5px;
+  font-size: 8px;
+  font-family: var(--mono);
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  z-index: 5;
+}
+
+/* ─── FLOW BARS ─── */
+.flow-bars {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.flow-bar-wrap { }
+.flow-bar-label {
+  font-size: 8px;
+  font-family: var(--mono);
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  margin-bottom: 3px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.flow-bar-track {
+  height: 5px;
+  background: var(--border-accent);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.flow-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+
+.flow-bar-val {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  margin-top: 3px;
+}
+
+/* ─── WARNING GRID ─── */
+.warn-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.warn-light {
+  padding: 5px 2px;
+  text-align: center;
+  font-size: 7px;
+  font-family: var(--mono);
+  letter-spacing: 0.5px;
+  background: #0c0c18;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: 2px;
+  transition: all 0.3s;
+  line-height: 1.4;
+}
+
+.warn-light.ok {
+  background: rgba(26,219,108,0.08);
+  border-color: rgba(26,219,108,0.25);
+  color: var(--green);
+}
+
+/* ─── CENTER ─── */
+#center {
+  position: relative;
+  overflow: hidden;
+  background: #000005;
+  display: flex;
+  flex-direction: column;
+}
+
+#viewport3d {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+#viewport3d canvas {
+  display: block;
+  position: absolute;
+  top: 0; left: 0;
+}
+
+/* ─── HUD OVERLAYS ─── */
+.hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Speed Tape */
+.speed-tape {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 66px;
+  background: rgba(5,5,12,0.88);
+  border: 1px solid var(--border-accent);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.tape-head {
+  font-size: 7px;
+  font-family: var(--mono);
+  letter-spacing: 2px;
+  color: var(--text-dim);
+  text-align: center;
+  padding: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tape-val-box {
+  background: rgba(0,0,0,0.9);
+  border-top: 1px solid var(--cyan);
+  border-bottom: 1px solid var(--cyan);
+  padding: 6px 4px;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--cyan);
+}
+
+.tape-ticks {
+  padding: 4px 0;
+}
+
+.tape-tick {
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-dim);
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(28,28,46,0.3);
+}
+
+/* Alt tape */
+.alt-tape {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 66px;
+  background: rgba(5,5,12,0.88);
+  border: 1px solid var(--border-accent);
+  border-radius: 2px;
+  overflow: hidden;
+  text-align: center;
+}
+
+.alt-val-box {
+  border-top: 1px solid var(--green);
+  border-bottom: 1px solid var(--green);
+  padding: 6px 2px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--green);
+}
+
+/* Target reticle */
+.reticle {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 120px; height: 120px;
+}
+
+.reticle-ring {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(232,101,26,0.25);
+  border-radius: 50%;
+}
+
+.reticle-ring-inner {
+  position: absolute;
+  inset: 20px;
+  border: 1px solid rgba(232,101,26,0.15);
+  border-radius: 50%;
+}
+
+.reticle-h {
+  position: absolute;
+  top: 50%; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(232,101,26,0.4) 30%, rgba(232,101,26,0.4) 70%, transparent);
+}
+
+.reticle-v {
+  position: absolute;
+  left: 50%; top: 0; bottom: 0;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, rgba(232,101,26,0.4) 30%, rgba(232,101,26,0.4) 70%, transparent);
+}
+
+/* Lock animation */
+.lock-corners {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 160px; height: 160px;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.lock-corners.active { opacity: 1; }
+
+.lc { position: absolute; width: 16px; height: 16px; }
+.lc-tl { top: 0; left: 0; border-top: 2px solid var(--green); border-left: 2px solid var(--green); }
+.lc-tr { top: 0; right: 0; border-top: 2px solid var(--green); border-right: 2px solid var(--green); }
+.lc-bl { bottom: 0; left: 0; border-bottom: 2px solid var(--green); border-left: 2px solid var(--green); }
+.lc-br { bottom: 0; right: 0; border-bottom: 2px solid var(--green); border-right: 2px solid var(--green); }
+
+.lc-tl.short, .lc-tr.short, .lc-bl.short, .lc-br.short {
+  border-color: var(--red) !important;
+}
+
+/* Heading bar */
+.heading-bar {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 220px;
+  height: 32px;
+  background: rgba(5,5,12,0.9);
+  border: 1px solid var(--border-accent);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.heading-tape-inner {
+  display: flex;
+  position: absolute;
+  top: 0; height: 100%;
+  transition: transform 0.3s;
+}
+
+.heading-tick {
+  width: 44px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-dim);
+  border-right: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.heading-tick.key { color: var(--orange); font-size: 8px; font-weight: 700; }
+
+.heading-ptr {
+  position: absolute;
+  top: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid var(--orange);
+}
+
+/* Radar */
+.radar {
+  position: absolute;
+  top: 10px;
+  right: 90px;
+  width: 130px; height: 130px;
+  border: 1px solid var(--border-accent);
+  border-radius: 50%;
+  background: rgba(5,5,12,0.92);
+  overflow: hidden;
+}
+
+.radar-h {
+  position: absolute;
+  top: 50%; left: 0; right: 0;
+  height: 1px;
+  background: rgba(232,101,26,0.15);
+}
+
+.radar-v {
+  position: absolute;
+  left: 50%; top: 0; bottom: 0;
+  width: 1px;
+  background: rgba(232,101,26,0.15);
+}
+
+.radar-sweep {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 50%;
+  height: 1px;
+  background: linear-gradient(90deg, var(--green), transparent);
+  transform-origin: left center;
+  animation: sweep 3s linear infinite;
+  opacity: 0.6;
+}
+
+@keyframes sweep { from{transform:rotate(0)} to{transform:rotate(360deg)} }
+
+.radar-center-dot {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 4px; height: 4px;
+  margin: -2px;
+  background: var(--orange);
+  border-radius: 50%;
+  opacity: 0.8;
+}
+
+/* G + VSI small panel */
+.telem-bottom {
+  position: absolute;
+  left: 90px;
+  bottom: 50px;
+  display: flex;
+  gap: 6px;
+}
+
+.mini-gauge {
+  background: rgba(5,5,12,0.88);
+  border: 1px solid var(--border-accent);
+  border-radius: 2px;
+  padding: 6px 10px;
+  text-align: center;
+  min-width: 52px;
+}
+
+.mini-gauge-val {
+  font-family: var(--mono);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.mini-gauge-label {
+  font-size: 7px;
+  font-family: var(--mono);
+  color: var(--text-dim);
+  letter-spacing: 2px;
+  margin-top: 3px;
+}
+
+/* Mini chart */
+#chart-wrap {
+  position: absolute;
+  bottom: 10px;
+  left: 90px;
+  width: 220px;
+  height: 80px;
+  background: rgba(5,5,12,0.9);
+  border: 1px solid var(--border-accent);
+  border-radius: 2px;
+  z-index: 5;
+}
+
+/* ─── RIGHT PANEL ─── */
+.signal-main {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--border-accent);
+  border-radius: 2px;
+  padding: 10px;
+  text-align: center;
+}
+
+#sig-direction {
+  font-family: var(--mono);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: var(--text-mid);
+  transition: color 0.3s;
+}
+
+#sig-confidence {
+  font-size: 9px;
+  font-family: var(--mono);
+  color: var(--text-dim);
+  margin-top: 4px;
+  letter-spacing: 1px;
+}
+
+.cond-bar {
+  height: 3px;
+  background: var(--border-accent);
+  border-radius: 2px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+.cond-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--orange);
+  transition: width 0.4s, background 0.3s;
+}
+
+/* Trade params */
+.params-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+}
+
+.param-box {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 6px 8px;
+}
+
+.param-label {
+  font-size: 7px;
+  font-family: var(--mono);
+  color: var(--text-dim);
+  letter-spacing: 1.5px;
+  margin-bottom: 3px;
+}
+
+.param-val {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* PNL */
+.pnl-box {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--border-accent);
+  border-radius: 2px;
+  padding: 8px;
+  text-align: center;
+}
+
+.pnl-val {
+  font-family: var(--mono);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.pnl-label {
+  font-size: 8px;
+  font-family: var(--mono);
+  color: var(--text-dim);
+  letter-spacing: 2px;
+  margin-top: 3px;
+}
+
+.perf-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 5px;
+}
+
+.perf-box {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 5px;
+  text-align: center;
+}
+
+.perf-val {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.perf-label {
+  font-size: 7px;
+  font-family: var(--mono);
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  margin-top: 2px;
+}
+
+/* Trade tape */
+.tape-head-row {
+  display: grid;
+  grid-template-columns: 18px 1fr 52px 40px;
+  font-size: 7px;
+  font-family: var(--mono);
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  padding: 3px 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2px;
+}
+
+.tape-item {
+  display: grid;
+  grid-template-columns: 18px 1fr 52px 40px;
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(28,28,46,0.4);
+  transition: background 0.15s;
+}
+
+.tape-item.buy { color: var(--green); }
+.tape-item.sell { color: var(--red); }
+
+.tape-item.whale {
+  background: rgba(232,101,26,0.06);
+  border-left: 2px solid var(--orange);
+  padding-left: 3px;
+}
+
+.tape-item.big {
+  background: rgba(155,111,232,0.05);
+  border-left: 2px solid var(--purple);
+  padding-left: 3px;
+}
+
+/* ─── BOTTOM BAR ─── */
+#bottombar {
+  height: 36px;
+  background: var(--panel);
+  border-top: 1px solid var(--border-accent);
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+}
+
+.bb-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid var(--border);
+  padding: 0 6px;
+}
+
+.bb-stat:last-child { border-right: none; }
+
+.bb-label {
+  font-size: 7px;
+  font-family: var(--mono);
+  color: var(--text-dim);
+  letter-spacing: 1.5px;
+}
+
+.bb-val {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Sentiment arc */
+.sentiment-wrap {
+  padding: 0 4px;
+  text-align: center;
+}
+.sent-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  margin-top: -4px;
+  margin-bottom: 4px;
+}
+
+/* Open position box */
+.open-pos-box {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--border-accent);
+  border-radius: 2px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.open-pos-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Signal log */
+.sig-log-item {
+  display: grid;
+  grid-template-columns: 36px 1fr 46px 32px;
+  font-family: var(--mono);
+  font-size: 9px;
+  padding: 4px 6px;
+  border-radius: 2px;
+  border: 1px solid var(--border);
+  background: rgba(0,0,0,0.3);
+  gap: 4px;
+  align-items: center;
+}
+.sig-log-item.win { border-color: rgba(26,219,108,0.2); }
+.sig-log-item.loss { border-color: rgba(232,48,74,0.2); }
+.sig-log-item.open { border-color: rgba(232,101,26,0.3); animation: openPulse 2s ease-in-out infinite; }
+@keyframes openPulse { 0%,100%{border-color:rgba(232,101,26,0.3)} 50%{border-color:rgba(232,101,26,0.7)} }
+
+/* Bigger radar blips */
+.radar-blip {
+  position: absolute;
+  border-radius: 50%;
+  animation: blipFade 1.8s ease-out forwards;
+}
+@keyframes blipFade { 0%{opacity:.9;transform:scale(1)} 100%{opacity:0;transform:scale(3)} }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div id="topbar">
+  <div class="tb-logo">VECTOR//TRADER</div>
+  <div class="tb-price-block">
+    <div>
+      <div class="tb-pair">BTC/USD</div>
+      <div id="price">$——</div>
+    </div>
+    <div id="delta" class="pos">+0.00%</div>
+  </div>
+  <div class="tb-stats">
+    <div class="tb-stat">
+      <span class="tb-stat-label">SESSION HIGH</span>
+      <span class="tb-stat-val" id="hi" style="color:var(--green)">——</span>
+    </div>
+    <div class="tb-stat">
+      <span class="tb-stat-label">SESSION LOW</span>
+      <span class="tb-stat-val" id="lo" style="color:var(--red)">——</span>
+    </div>
+    <div class="tb-stat">
+      <span class="tb-stat-label">VOLUME</span>
+      <span class="tb-stat-val" id="vol" style="color:var(--orange)">0.00</span>
+    </div>
+    <div class="tb-stat">
+      <span class="tb-stat-label">IMBALANCE</span>
+      <span class="tb-stat-val" id="imb" style="color:var(--text-mid)">——</span>
+    </div>
+    <div class="tb-stat">
+      <span class="tb-stat-label">TPS</span>
+      <span class="tb-stat-val" id="tps" style="color:var(--cyan)">0</span>
+    </div>
+    <div class="tb-stat">
+      <span class="tb-stat-label">WIN RATE</span>
+      <span class="tb-stat-val" id="wr" style="color:var(--green)">——</span>
+    </div>
+  </div>
+  <div class="tb-signal">
+    <div id="sig-badge">SCANNING</div>
+  </div>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div id="layout">
+
+  <!-- LEFT PANEL -->
+  <div class="panel">
+    <div class="panel-head">◈ TELEMETRY</div>
+    <div class="panel-body">
+
+      <div class="section-label">RSI · 14</div>
+      <div class="rsi-gauge-wrap">
+        <svg class="rsi-gauge-svg" viewBox="0 0 60 60">
+          <circle class="rsi-arc-bg" cx="30" cy="30" r="24" stroke-dasharray="150.8" stroke-dashoffset="0" transform="rotate(-90 30 30)"/>
+          <circle class="rsi-arc" id="rsi-arc" cx="30" cy="30" r="24" stroke="var(--orange)"
+            stroke-dasharray="150.8" stroke-dashoffset="75.4" transform="rotate(-90 30 30)"/>
+        </svg>
+        <div class="rsi-info">
+          <div class="rsi-value" id="rsi-val" style="color:var(--orange)">——</div>
+          <div class="rsi-label">RSI</div>
+          <div class="rsi-zone" id="rsi-zone" style="color:var(--text-dim)">NEUTRAL</div>
+        </div>
+      </div>
+
+      <div class="section-label">PITCH · ROLL</div>
+      <div class="horizon-wrap">
+        <div class="horizon-sky" id="h-sky"></div>
+        <div class="horizon-ground" id="h-grd"></div>
+        <div class="horizon-line" id="h-line"></div>
+        <div class="horizon-reticle">
+          <div class="horizon-wing"></div>
+          <div class="horizon-center-dot"></div>
+          <div class="horizon-wing"></div>
+        </div>
+        <div class="horizon-label" id="h-label">P:0.0° R:0.0°</div>
+      </div>
+
+      <div class="section-label">BUY / SELL FLOW</div>
+      <div class="flow-bars">
+        <div class="flow-bar-wrap">
+          <div class="flow-bar-label">
+            <span style="color:var(--green)">BUY</span>
+            <span id="buy-pct" style="color:var(--green)">50%</span>
+          </div>
+          <div class="flow-bar-track"><div class="flow-bar-fill" id="buy-bar" style="width:50%;background:var(--green)"></div></div>
+          <div class="flow-bar-val" id="buy-vol-val" style="color:var(--green)">0.000</div>
+        </div>
+        <div class="flow-bar-wrap">
+          <div class="flow-bar-label">
+            <span style="color:var(--red)">SELL</span>
+            <span id="sell-pct" style="color:var(--red)">50%</span>
+          </div>
+          <div class="flow-bar-track"><div class="flow-bar-fill" id="sell-bar" style="width:50%;background:var(--red)"></div></div>
+          <div class="flow-bar-val" id="sell-vol-val" style="color:var(--red)">0.000</div>
+        </div>
+      </div>
+
+      <div class="section-label">SIGNAL CONDITIONS</div>
+      <div class="warn-grid">
+        <div class="warn-light" id="w-rsi">RSI</div>
+        <div class="warn-light" id="w-cvd">CVD</div>
+        <div class="warn-light" id="w-whale">WHALE</div>
+        <div class="warn-light" id="w-bb">BAND</div>
+        <div class="warn-light" id="w-vwap">VWAP</div>
+        <div class="warn-light" id="w-ob">OB</div>
+        <div class="warn-light" id="w-atr">ATR</div>
+        <div class="warn-light" id="w-trend">TREND</div>
+      </div>
+
+      <div class="section-label">INDICATORS</div>
+      <div class="metric">
+        <span class="metric-label">CVD TOTAL</span>
+        <span class="metric-val" id="cvd-total" style="color:var(--text)">——</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">CVD 1M</span>
+        <span class="metric-val" id="cvd-1m" style="color:var(--text)">——</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">CVD 5M</span>
+        <span class="metric-val" id="cvd-5m" style="color:var(--text)">——</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">WHALE FLOW</span>
+        <span class="metric-val" id="whale-flow" style="color:var(--text)">$0K</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">MACD</span>
+        <span class="metric-val" id="macd-val" style="color:var(--text)">——</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">ATR</span>
+        <span class="metric-val" id="atr-val" style="color:var(--text)">——</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">VWAP</span>
+        <span class="metric-val" id="vwap-val" style="color:var(--text)">——</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">BID/ASK</span>
+        <span class="metric-val" id="ba-ratio" style="color:var(--text)">——</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- CENTER -->
+  <div id="center">
+    <div id="viewport3d">
+      <!-- canvas injected here -->
+      <div class="hud">
+
+        <!-- Speed tape -->
+        <div class="speed-tape">
+          <div class="tape-head">VELOC.</div>
+          <div class="tape-val-box" id="vel-val">+0.000%</div>
+          <div class="tape-ticks">
+            <div class="tape-tick">+0.3%</div>
+            <div class="tape-tick">+0.2%</div>
+            <div class="tape-tick">+0.1%</div>
+            <div class="tape-tick" style="color:var(--text-mid)">0.000</div>
+            <div class="tape-tick">−0.1%</div>
+            <div class="tape-tick">−0.2%</div>
+            <div class="tape-tick">−0.3%</div>
+          </div>
+        </div>
+
+        <!-- Alt tape -->
+        <div class="alt-tape">
+          <div class="tape-head">ALTITD.</div>
+          <div class="alt-val-box" id="alt-val">$——</div>
+          <div class="tape-ticks">
+            <div class="tape-tick" id="alt-hi">——</div>
+            <div class="tape-tick" style="color:var(--text-dim)">▲ HIGH</div>
+            <div class="tape-tick" id="alt-lo">——</div>
+            <div class="tape-tick" style="color:var(--text-dim)">▼ LOW</div>
+          </div>
+        </div>
+
+        <!-- Reticle -->
+        <div class="reticle">
+          <div class="reticle-ring"></div>
+          <div class="reticle-ring-inner"></div>
+          <div class="reticle-h"></div>
+          <div class="reticle-v"></div>
+        </div>
+
+        <!-- Lock corners -->
+        <div class="lock-corners" id="lock-corners">
+          <div class="lc lc-tl" id="lc1"></div>
+          <div class="lc lc-tr" id="lc2"></div>
+          <div class="lc lc-bl" id="lc3"></div>
+          <div class="lc lc-br" id="lc4"></div>
+        </div>
+
+        <!-- G + VSI -->
+        <div class="telem-bottom">
+          <div class="mini-gauge">
+            <div class="mini-gauge-val" id="g-val" style="color:var(--orange)">1.0G</div>
+            <div class="mini-gauge-label">G-FORCE</div>
+          </div>
+          <div class="mini-gauge">
+            <div class="mini-gauge-val" id="vsi-val" style="color:var(--cyan)">±0.0</div>
+            <div class="mini-gauge-label">VSI</div>
+          </div>
+        </div>
+
+        <!-- Radar -->
+        <div class="radar" id="radar">
+          <div class="radar-h"></div>
+          <div class="radar-v"></div>
+          <div class="radar-sweep"></div>
+          <div class="radar-center-dot"></div>
+        </div>
+
+        <!-- Heading -->
+        <div class="heading-bar">
+          <div class="heading-tape-inner" id="heading-tape">
+            <div class="heading-tick">SELL</div>
+            <div class="heading-tick key">BEAR</div>
+            <div class="heading-tick">· · ·</div>
+            <div class="heading-tick key">NEUT</div>
+            <div class="heading-tick">· · ·</div>
+            <div class="heading-tick key">BULL</div>
+            <div class="heading-tick">BUY</div>
+          </div>
+          <div class="heading-ptr"></div>
+        </div>
+
+        <!-- Mini chart -->
+        <div id="chart-wrap"></div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="panel">
+    <div class="panel-head">◈ TARGETING</div>
+    <div class="panel-body">
+
+      <div class="signal-main">
+        <div id="sig-direction">SCANNING</div>
+        <div id="sig-confidence">CONDITIONS: 0 / 8</div>
+        <div class="cond-bar"><div class="cond-bar-fill" id="cond-fill" style="width:0%"></div></div>
+      </div>
+
+      <!-- SENTIMENT ARC -->
+      <div class="section-label">MARKET SENTIMENT</div>
+      <div class="sentiment-wrap">
+        <svg viewBox="0 0 120 65" width="100%">
+          <path d="M10,60 A50,50 0 0,1 110,60" fill="none" stroke="#1c1c2e" stroke-width="8"/>
+          <path d="M10,60 A50,50 0 0,1 110,60" fill="none" stroke="url(#sentGrad)" stroke-width="8" stroke-linecap="round"/>
+          <defs>
+            <linearGradient id="sentGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#e8304a"/>
+              <stop offset="50%" stop-color="#e8c61a"/>
+              <stop offset="100%" stop-color="#1adb6c"/>
+            </linearGradient>
+          </defs>
+          <!-- Needle -->
+          <line id="sent-needle" x1="60" y1="60" x2="60" y2="18" stroke="#e8651a" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="60" cy="60" r="4" fill="#e8651a"/>
+          <text x="10" y="74" fill="#4a4a6a" font-size="7" font-family="Space Mono">FEAR</text>
+          <text x="84" y="74" fill="#4a4a6a" font-size="7" font-family="Space Mono">GREED</text>
+          <text id="sent-score" x="60" y="50" fill="#e8651a" font-size="11" font-family="Space Mono" font-weight="700" text-anchor="middle">50</text>
+        </svg>
+        <div class="sent-label" id="sent-label" style="color:var(--orange)">NEUTRAL</div>
+      </div>
+
+      <div class="section-label">TRADE PARAMETERS</div>
+      <div class="params-grid">
+        <div class="param-box">
+          <div class="param-label">ENTRY</div>
+          <div class="param-val" id="p-entry" style="color:var(--cyan)">——</div>
+        </div>
+        <div class="param-box">
+          <div class="param-label">STOP LOSS</div>
+          <div class="param-val" id="p-stop" style="color:var(--red)">——</div>
+        </div>
+        <div class="param-box">
+          <div class="param-label">TARGET 1</div>
+          <div class="param-val" id="p-tp1" style="color:var(--green)">——</div>
+        </div>
+        <div class="param-box">
+          <div class="param-label">TARGET 2</div>
+          <div class="param-val" id="p-tp2" style="color:var(--green)">——</div>
+        </div>
+      </div>
+
+      <!-- LIVE UNREALIZED P&L -->
+      <div class="section-label">OPEN POSITION</div>
+      <div class="open-pos-box" id="open-pos-box">
+        <div class="open-pos-row">
+          <span class="metric-label">DIRECTION</span>
+          <span class="metric-val" id="op-dir" style="color:var(--text-mid)">NONE</span>
+        </div>
+        <div class="open-pos-row">
+          <span class="metric-label">UNREALIZED R</span>
+          <span class="metric-val" id="op-unreal" style="color:var(--text-mid)">——</span>
+        </div>
+        <div class="open-pos-row">
+          <span class="metric-label">DISTANCE TO TP1</span>
+          <span class="metric-val" id="op-dist-tp1" style="color:var(--text-mid)">——</span>
+        </div>
+        <div class="open-pos-row">
+          <span class="metric-label">DISTANCE TO SL</span>
+          <span class="metric-val" id="op-dist-sl" style="color:var(--text-mid)">——</span>
+        </div>
+        <div class="open-pos-row">
+          <span class="metric-label">DURATION</span>
+          <span class="metric-val" id="op-dur" style="color:var(--text-mid)">——</span>
+        </div>
+      </div>
+
+      <div class="section-label">PERFORMANCE</div>
+      <div class="pnl-box">
+        <div class="pnl-val" id="pnl-val" style="color:var(--green)">$0</div>
+        <div class="pnl-label">SESSION P&amp;L (×$100/R)</div>
+      </div>
+      <div class="perf-row">
+        <div class="perf-box">
+          <div class="perf-val" id="p-wins" style="color:var(--green)">0</div>
+          <div class="perf-label">WINS</div>
+        </div>
+        <div class="perf-box">
+          <div class="perf-val" id="p-losses" style="color:var(--red)">0</div>
+          <div class="perf-label">LOSSES</div>
+        </div>
+        <div class="perf-box">
+          <div class="perf-val" id="p-rr" style="color:var(--yellow)">——</div>
+          <div class="perf-label">AVG R:R</div>
+        </div>
+      </div>
+      <div class="perf-row" style="margin-top:5px">
+        <div class="perf-box">
+          <div class="perf-val" id="p-signals" style="color:var(--cyan)">0</div>
+          <div class="perf-label">SIGNALS</div>
+        </div>
+        <div class="perf-box">
+          <div class="perf-val" id="p-avgdur" style="color:var(--purple)">——</div>
+          <div class="perf-label">AVG DUR</div>
+        </div>
+        <div class="perf-box">
+          <div class="perf-val" id="p-streak" style="color:var(--orange)">0</div>
+          <div class="perf-label">STREAK</div>
+        </div>
+      </div>
+
+      <!-- SIGNAL HISTORY LOG -->
+      <div class="section-label">SIGNAL LOG</div>
+      <div id="sig-log" style="display:flex;flex-direction:column;gap:3px;"></div>
+
+      <div class="section-label">TRADE TAPE</div>
+      <div class="tape-head-row">
+        <span>S</span><span>PRICE</span><span>SIZE</span><span>VAL</span>
+      </div>
+      <div id="tape" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:0;"></div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- BOTTOM BAR -->
+<div id="bottombar">
+  <div class="bb-stat">
+    <span class="bb-label">UTC TIME</span>
+    <span class="bb-val" id="bb-clock" style="color:var(--cyan)">——</span>
+  </div>
+  <div class="bb-stat">
+    <span class="bb-label">SESSION</span>
+    <span class="bb-val" id="bb-session" style="color:var(--text)">——</span>
+  </div>
+  <div class="bb-stat">
+    <span class="bb-label">SPREAD</span>
+    <span class="bb-val" id="bb-spread" style="color:var(--text)">——</span>
+  </div>
+  <div class="bb-stat">
+    <span class="bb-label">BID DEPTH</span>
+    <span class="bb-val" id="bb-bid" style="color:var(--green)">——</span>
+  </div>
+  <div class="bb-stat">
+    <span class="bb-label">ASK DEPTH</span>
+    <span class="bb-val" id="bb-ask" style="color:var(--red)">——</span>
+  </div>
+  <div class="bb-stat">
+    <span class="bb-label">CVD TREND</span>
+    <span class="bb-val" id="bb-cvd" style="color:var(--orange)">——</span>
+  </div>
+  <div class="bb-stat">
+    <span class="bb-label">MOMENTUM</span>
+    <span class="bb-val" id="bb-mom" style="color:var(--text)">——</span>
+  </div>
+  <div class="bb-stat">
+    <span class="bb-label">BB POSITION</span>
+    <span class="bb-val" id="bb-bbpos" style="color:var(--text)">——</span>
+  </div>
+  <div class="bb-stat">
+    <span class="bb-label">ACTIVE</span>
+    <span class="bb-val" id="bb-active" style="color:var(--cyan)">0</span>
+  </div>
+  <div class="bb-stat">
+    <span class="bb-label">WIN RATE</span>
+    <span class="bb-val" id="wr2" style="color:var(--green)">——</span>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+  const CANDLE_SEC = 10;
+
+  const state = {
+    price: 0, prevPrice: 0, firstPrice: 0,
+    hi: 0, lo: Infinity,
+    buyVol: 0, sellVol: 0, cvd: 0,
+    trades: [], ticks: [],
+    ob: { bid: 0, ask: 0, spread: 0 },
+    tps: 0, tradesThisSec: 0, lastSec: 0,
+    candles: [], curCandle: null,
+    ind: { rsi: null, macd: null, macdPrev: null, atr: null, vwap: null, bbUp: null, bbLo: null, ready: false },
+    active: [], closed: [],
+    wins: 0, losses: 0, pnl: 0,
+    vel: 0, acc: 0, prevVel: 0,
+    pitch: 0, roll: 0,
+    gridColor: { r: 26, g: 219, b: 108 },   // live interpolated grid color
+    lastSignalDir: null,
+    cooldownUntil: 0
+  };
+
+  // ─── MINI CHART ───
+  const chartWrap = document.getElementById('chart-wrap');
+  const chart = LightweightCharts.createChart(chartWrap, {
+    layout: { background: { color: 'transparent' }, textColor: 'transparent' },
+    grid: { vertLines: { color: '#1c1c2e' }, horzLines: { color: '#1c1c2e' } },
+    timeScale: { visible: false },
+    rightPriceScale: { visible: false },
+    leftPriceScale: { visible: false },
+    crosshair: { mode: 0 },
+    handleScroll: false, handleScale: false
+  });
+  const priceSeries = chart.addLineSeries({ color: '#e8651a', lineWidth: 1.5 });
+
+  // ─── THREE.JS ───
+  const vp = document.getElementById('viewport3d');
+  let scene, camera, renderer, jet, groundLines = [], groundMats = [];
+  let groundOffset = 0;
+  let missiles = [];
+  let enemyJet = null;       // the enemy fighter
+  let enemyState = 'none';   // 'none' | 'approaching' | 'dogfight' | 'dying' | 'escaping'
+  let enemyDir = 'LONG';     // which direction triggered it
+  let enemyAge = 0;
+  let explosionParticles = [];
+  const GRID_STEP = 8, GRID_COLS = 50, GRID_ROWS = 80;
+
+  function initScene() {
+    scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x000005, 0.009);
+    camera = new THREE.PerspectiveCamera(65, vp.offsetWidth / vp.offsetHeight, 0.1, 1200);
+    camera.position.set(0, 3, 12);
+    camera.lookAt(0, 0.5, -80);
+
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setSize(vp.offsetWidth, vp.offsetHeight);
+    renderer.setClearColor(0x000005, 1);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    vp.insertBefore(renderer.domElement, vp.firstChild);
+
+    jet = buildJet();
+    scene.add(jet);
+
+    buildGrid();
+    scene.add(buildStars());
+  }
+
+  // ─── DYNAMIC GRID ───
+  // We store individual line materials so we can recolor live
+  function buildGrid() {
+    const half = Math.floor(GRID_COLS / 2);
+    // Longitudinal lines (run into the distance)
+    for (let i = -half; i <= half; i++) {
+      const mat = new THREE.LineBasicMaterial({ color: 0x1adb6c, transparent: true, opacity: 0.6 });
+      const geo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(i * GRID_STEP, -5, 80),
+        new THREE.Vector3(i * GRID_STEP, -5, -GRID_ROWS * GRID_STEP)
+      ]);
+      const line = new THREE.Line(geo, mat);
+      scene.add(line);
+      groundMats.push(mat);
+    }
+    // Lateral lines (horizontal cross-lines, we'll scroll these)
+    for (let r = 0; r < GRID_ROWS; r++) {
+      const mat = new THREE.LineBasicMaterial({ color: 0x1adb6c, transparent: true, opacity: 0.6 });
+      const z = -r * GRID_STEP;
+      const geo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(-half * GRID_STEP, -5, z),
+        new THREE.Vector3( half * GRID_STEP, -5, z)
+      ]);
+      const line = new THREE.Line(geo, mat);
+      scene.add(line);
+      groundMats.push(mat);
+      groundLines.push({ line, baseZ: z });
+    }
+  }
+
+  // Interpolate grid color: green (buy) ↔ red (sell) based on CVD balance
+  function updateGridColor() {
+    const total = state.buyVol + state.sellVol;
+    const bp = total > 0 ? state.buyVol / total : 0.5; // 0→sell, 1→buy
+    // Green: 26,219,108  Red: 232,48,74
+    const r = Math.round(26  + (232 - 26)  * (1 - bp));
+    const g = Math.round(219 + (48  - 219) * (1 - bp));
+    const b = Math.round(108 + (74  - 108) * (1 - bp));
+    const hex = (r << 16) | (g << 8) | b;
+    groundMats.forEach(m => m.color.setHex(hex));
+  }
+
+  function buildJet() {
+    const g = new THREE.Group();
+    const M = (c) => new THREE.LineBasicMaterial({ color: c });
+    const pts = (arr) => arr.map(p => new THREE.Vector3(...p));
+    const line = (arr, col) => new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts(arr)), M(col));
+
+    g.add(line([[0,0,-7],[.5,.3,-4],[.8,.6,-1],[.9,.7,2],[.7,.9,5],[.3,1.8,6.5],[0,2.2,7],[-.3,1.8,6.5],[-.7,.9,5],[-.9,.7,2],[-.8,.6,-1],[-.5,.3,-4],[0,0,-7]], 0xe8651a));
+    g.add(line([[0,0,-7],[.5,-.25,-4],[.8,-.35,0],[.7,-.25,4.5],[0,0,6.5],[-.7,-.25,4.5],[-.8,-.35,0],[-.5,-.25,-4],[0,0,-7]], 0xe8651a));
+    g.add(line([[.9,.25,0],[6.5,-.6,2.5],[7,-.6,4],[1.1,.25,3.5]], 0xe8651a));
+    g.add(line([[-.9,.25,0],[-6.5,-.6,2.5],[-7,-.6,4],[-1.1,.25,3.5]], 0xe8651a));
+    for(let i=1;i<4;i++){
+      const x=1+i*1.4, y=.2-i*.2;
+      g.add(line([[x,y,i*.6],[x,y,3+i*.2]], 0x7a3a0a));
+      g.add(line([[-x,y,i*.6],[-x,y,3+i*.2]], 0x7a3a0a));
+    }
+    g.add(line([[.5,.7,5],[2.2,.3,6.5],[2.5,.3,7],[.6,.8,6.2]], 0xe8651a));
+    g.add(line([[-.5,.7,5],[-2.2,.3,6.5],[-2.5,.3,7],[-.6,.8,6.2]], 0xe8651a));
+    g.add(line([[0,1,4.5],[0,2.2,7]], 0xe8651a));
+    g.add(line([[0,.5,-3.5],[.4,.9,-2],[.4,1.1,0],[-.4,1.1,0],[-.4,.9,-2],[0,.5,-3.5]], 0x1ac8e8));
+    g.add(line([[0,1,-1.5],[0,.5,-3.5]], 0x1ac8e8));
+    const eColors = [0xe8651a, 0xe84010, 0xe82000];
+    for(let i=0;i<3;i++){
+      const r=.38-i*.07, z=6.4+i*.4, ep=[];
+      for(let j=0;j<=24;j++){
+        const a=j/24*Math.PI*2;
+        ep.push(new THREE.Vector3(Math.cos(a)*r, Math.sin(a)*r+.4, z));
+      }
+      g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(ep),
+        new THREE.LineBasicMaterial({color:eColors[i],transparent:true,opacity:1-i*.25})));
+    }
+    return g;
+  }
+
+  let starPoints, starPositions;
+  function buildStars() {
+    const count = 700;
+    starPositions = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      starPositions[i*3]   = (Math.random() - 0.5) * 500;
+      starPositions[i*3+1] = Math.random() * 140 + 8;
+      starPositions[i*3+2] = (Math.random() - 0.5) * 600 - 50;
+    }
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+    starPoints = new THREE.Points(geom, new THREE.PointsMaterial({ color: 0xddeeff, size: 0.9, transparent: true, opacity: 0.85 }));
+    return starPoints;
+  }
+
+  function updateStars(dt) {
+    if (!starPoints) return;
+    const absVel = Math.abs(state.vel);
+    const starSpeed = (2.0 + absVel * 300) * dt;
+    const pos = starPoints.geometry.attributes.position;
+    const count = pos.count;
+    for (let i = 0; i < count; i++) {
+      pos.array[i*3+2] += starSpeed;
+      // Wrap star back to far distance when it passes the camera
+      if (pos.array[i*3+2] > 80) {
+        pos.array[i*3+2] = -550 + Math.random() * 100;
+        pos.array[i*3]   = (Math.random() - 0.5) * 500;
+        pos.array[i*3+1] = Math.random() * 140 + 8;
+      }
+    }
+    pos.needsUpdate = true;
+  }
+
+  // ─── MISSILE SYSTEM ───
+  function fireMissile(dir) {
+    const isLong = dir === 'LONG';
+    const color = isLong ? 0x1adb6c : 0xe8304a;
+    const trailColor = isLong ? 0x08ffaa : 0xff2060;
+    const group = new THREE.Group();
+
+    const bodyMat = new THREE.LineBasicMaterial({ color, linewidth: 2 });
+    group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,-3.5)
+    ]), bodyMat));
+
+    const finMat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.7 });
+    [[-0.4,0],[0.4,0],[0,0.4],[0,-0.4]].forEach(([fx,fy]) => {
+      group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(fx,fy,0), new THREE.Vector3(fx*1.6,fy*1.6,1.2)
+      ]), finMat));
+    });
+
+    const noseMat = new THREE.LineBasicMaterial({ color: trailColor });
+    [[-0.25,0],[0.25,0],[0,-0.25],[0,0.25]].forEach(([nx,ny]) => {
+      group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(nx,ny,-3.5), new THREE.Vector3(0,0,-5)
+      ]), noseMat));
+    });
+
+    const trailMat = new THREE.LineBasicMaterial({ color: trailColor, transparent: true, opacity: 0.5 });
+    const trail = new THREE.Line(new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,8)
+    ]), trailMat);
+    group.add(trail);
+
+    const offsetX = (Math.random() > 0.5 ? 3 : -3);
+    group.position.set(jet.position.x + offsetX, jet.position.y - 0.3, jet.position.z + 8);
+
+    const spreadX = (Math.random()-0.5)*0.3;
+    const spreadY = isLong ? 0.05+Math.random()*0.08 : -0.05-Math.random()*0.08;
+
+    scene.add(group);
+    // Homing if enemy is in dogfight
+    const homing = (enemyJet !== null && (enemyState === 'dogfight' || enemyState === 'approaching'));
+    missiles.push({
+      group, trail, trailMat,
+      vel: new THREE.Vector3(spreadX, spreadY, -(3.5+Math.random())),
+      age: 0, maxAge: homing ? 5.0 : 3.5,
+      isLong, homing
+    });
+  }
+
+  function updateMissiles(dt) {
+    missiles = missiles.filter(m => {
+      m.age += dt;
+      if (m.age > m.maxAge) {
+        scene.remove(m.group);
+        return false;
+      }
+
+      // If missile is homing on enemy, steer toward it
+      if (m.homing && enemyJet && (enemyState === 'dogfight' || enemyState === 'approaching')) {
+        const toEnemy = new THREE.Vector3().subVectors(enemyJet.position, m.group.position);
+        const dist = toEnemy.length();
+        if (dist < 4) {
+          // HIT!
+          triggerEnemyDeath();
+          scene.remove(m.group);
+          return false;
+        }
+        toEnemy.normalize().multiplyScalar(dt * 90);
+        m.group.position.add(toEnemy);
+      } else {
+        m.group.position.addScaledVector(m.vel, dt * 60);
+      }
+      m.trailMat.opacity = Math.max(0, 0.6 - m.age / m.maxAge * 0.6);
+      return true;
+    });
+  }
+
+  // ─── ENEMY JET SYSTEM ───
+
+  function buildEnemyJet(isLong) {
+    // Mirror of player jet but enemy colored — green for LONG target, red for SHORT
+    const g = new THREE.Group();
+    const col  = isLong ? 0x1adb6c : 0xe8304a;
+    const col2 = isLong ? 0x08ffaa : 0xff2060;
+    const M  = (c, op=1) => new THREE.LineBasicMaterial({ color:c, transparent: op<1, opacity: op });
+    const pts = arr => arr.map(p => new THREE.Vector3(...p));
+    const ln  = (arr, c, op=1) => new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts(arr)), M(c,op));
+
+    // Fuselage — pointing TOWARD camera (nose at positive Z = toward us)
+    g.add(ln([[0,0,7],[.5,.3,4],[.8,.6,1],[.9,.7,-2],[.7,.9,-5],[.3,1.8,-6.5],[0,2.2,-7],[-.3,1.8,-6.5],[-.7,.9,-5],[-.9,.7,-2],[-.8,.6,1],[-.5,.3,4],[0,0,7]], col));
+    g.add(ln([[0,0,7],[.5,-.25,4],[.8,-.35,0],[.7,-.25,-4.5],[0,0,-6.5],[-.7,-.25,-4.5],[-.8,-.35,0],[-.5,-.25,4],[0,0,7]], col));
+    // Wings
+    g.add(ln([[.9,.25,0],[6.5,-.6,-2.5],[7,-.6,-4],[1.1,.25,-3.5]], col));
+    g.add(ln([[-.9,.25,0],[-6.5,-.6,-2.5],[-7,-.6,-4],[-1.1,.25,-3.5]], col));
+    // Wing ribs
+    for(let i=1;i<4;i++){
+      const x=1+i*1.4, y=.2-i*.2;
+      g.add(ln([[x,y,-i*.6],[x,y,-3-i*.2]], col, 0.5));
+      g.add(ln([[-x,y,-i*.6],[-x,y,-3-i*.2]], col, 0.5));
+    }
+    // Tails
+    g.add(ln([[.5,.7,-5],[2.2,.3,-6.5],[2.5,.3,-7],[.6,.8,-6.2]], col));
+    g.add(ln([[-.5,.7,-5],[-2.2,.3,-6.5],[-2.5,.3,-7],[-.6,.8,-6.2]], col));
+    g.add(ln([[0,1,-4.5],[0,2.2,-7]], col));
+    // Cockpit
+    g.add(ln([[0,.5,3.5],[.4,.9,2],[.4,1.1,0],[-.4,1.1,0],[-.4,.9,2],[0,.5,3.5]], col2));
+    g.add(ln([[0,1,1.5],[0,.5,3.5]], col2));
+    // Engine glow at rear (pointing away)
+    for(let i=0;i<3;i++){
+      const r=.38-i*.07, z=-6.4-i*.4, ep=[];
+      for(let j=0;j<=20;j++){
+        const a=j/20*Math.PI*2;
+        ep.push(new THREE.Vector3(Math.cos(a)*r, Math.sin(a)*r+.4, z));
+      }
+      g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(ep),
+        new THREE.LineBasicMaterial({color:col,transparent:true,opacity:0.8-i*.2})));
+    }
+    // Enemy ID marker — blinking ring around cockpit
+    const ringPts = [];
+    for(let j=0;j<=32;j++){
+      const a=j/32*Math.PI*2;
+      ringPts.push(new THREE.Vector3(Math.cos(a)*2.2, Math.sin(a)*2.2, 0));
+    }
+    g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(ringPts),
+      new THREE.LineBasicMaterial({color:col2,transparent:true,opacity:0.4})));
+
+    return g;
+  }
+
+  function spawnEnemy(dir) {
+    if (enemyJet) { scene.remove(enemyJet); enemyJet = null; }
+    enemyDir = dir;
+    enemyJet = buildEnemyJet(dir === 'LONG');
+    // Start far ahead and slightly above, approaching us
+    enemyJet.position.set(
+      (Math.random() - 0.5) * 6,
+      2 + Math.random() * 2,
+      -60
+    );
+    enemyJet.rotation.y = Math.PI; // face toward camera
+    scene.add(enemyJet);
+    enemyState = 'approaching';
+    enemyAge = 0;
+  }
+
+  function removeEnemy() {
+    if (enemyJet) { scene.remove(enemyJet); enemyJet = null; }
+    enemyState = 'none';
+    enemyAge = 0;
+  }
+
+  function triggerEnemyDeath() {
+    if (!enemyJet || enemyState === 'dying') return;
+    enemyState = 'dying';
+    enemyAge = 0;
+    // Spawn explosion particles at enemy position
+    const pos = enemyJet.position.clone();
+    const colors = [0xff6600, 0xff2200, 0xffaa00, 0xffffff, 0xff4400];
+    for (let i = 0; i < 40; i++) {
+      const mat = new THREE.LineBasicMaterial({
+        color: colors[Math.floor(Math.random()*colors.length)],
+        transparent: true, opacity: 1
+      });
+      const len = 1 + Math.random() * 3;
+      const dir3 = new THREE.Vector3(
+        (Math.random()-0.5)*2, (Math.random()-0.5)*2, (Math.random()-0.5)*2
+      ).normalize();
+      const geo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0,0,0),
+        dir3.clone().multiplyScalar(len)
+      ]);
+      const spark = new THREE.Line(geo, mat);
+      spark.position.copy(pos);
+      scene.add(spark);
+      explosionParticles.push({
+        mesh: spark, mat,
+        vel: dir3.multiplyScalar(0.8 + Math.random() * 1.4),
+        age: 0, maxAge: 1.2 + Math.random() * 0.8
+      });
+    }
+  }
+
+  function triggerEnemyEscape() {
+    if (!enemyJet) return;
+    enemyState = 'escaping';
+    enemyAge = 0;
+  }
+
+  function updateEnemy(dt, now) {
+    if (!enemyJet) return;
+    enemyAge += dt;
+
+    if (enemyState === 'approaching') {
+      // Fly toward camera (positive Z) and oscillate side to side
+      const targetZ = -20;
+      enemyJet.position.z += (targetZ - enemyJet.position.z) * dt * 0.8;
+      // Gentle weaving
+      enemyJet.position.x = Math.sin(now * 0.0008) * 5;
+      enemyJet.position.y = 2.5 + Math.sin(now * 0.0012) * 1.5;
+      // Bank slightly
+      enemyJet.rotation.z = Math.sin(now * 0.0008) * 0.3;
+      enemyJet.rotation.x = -0.1;
+
+    } else if (enemyState === 'dogfight') {
+      // Aggressive evasive maneuvers — figure-8 style orbit ahead of player
+      const t = enemyAge;
+      const orbitRadius = 12;
+      const targetX = Math.sin(t * 1.1) * orbitRadius;
+      const targetY = 2 + Math.cos(t * 0.7) * 3;
+      const targetZ = -18 + Math.sin(t * 0.9) * 8;
+      enemyJet.position.x += (targetX - enemyJet.position.x) * dt * 2.5;
+      enemyJet.position.y += (targetY - enemyJet.position.y) * dt * 2.5;
+      enemyJet.position.z += (targetZ - enemyJet.position.z) * dt * 2.5;
+      // Bank hard during maneuvers
+      enemyJet.rotation.z = Math.sin(t * 1.1) * 0.7;
+      enemyJet.rotation.x = Math.cos(t * 0.9) * 0.3 - 0.1;
+      // Occasionally fire back missiles (enemy tracers — small orange sparks)
+      if (Math.floor(enemyAge / 3) > Math.floor((enemyAge - dt) / 3)) {
+        spawnEnemyTracer();
+      }
+
+    } else if (enemyState === 'dying') {
+      // Spin and fall
+      enemyJet.rotation.z += dt * 4;
+      enemyJet.rotation.x += dt * 2;
+      enemyJet.position.y -= dt * 8;
+      enemyJet.position.z += dt * 15;
+      if (enemyAge > 1.5) removeEnemy();
+
+    } else if (enemyState === 'escaping') {
+      // Bank hard and dive away into the distance
+      enemyJet.rotation.z += dt * 2;
+      enemyJet.position.z -= dt * 30;
+      enemyJet.position.y += dt * 3;
+      if (enemyAge > 2.0) removeEnemy();
+    }
+  }
+
+  // Enemy tracers — small orange sparks fired toward player
+  let tracers = [];
+  function spawnEnemyTracer() {
+    if (!enemyJet) return;
+    const mat = new THREE.LineBasicMaterial({ color: 0xff8800, transparent: true, opacity: 0.9 });
+    const geo = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,-2)
+    ]);
+    const spark = new THREE.Line(geo, mat);
+    spark.position.copy(enemyJet.position);
+    scene.add(spark);
+    // Fire toward player (positive Z)
+    tracers.push({ mesh: spark, mat, vel: new THREE.Vector3((Math.random()-0.5)*0.5, (Math.random()-0.5)*0.3, 2.5), age:0, maxAge:1.0 });
+  }
+
+  function updateTracers(dt) {
+    tracers = tracers.filter(t => {
+      t.age += dt;
+      if (t.age > t.maxAge) { scene.remove(t.mesh); return false; }
+      t.mesh.position.addScaledVector(t.vel, dt * 60);
+      t.mat.opacity = Math.max(0, 0.9 - t.age/t.maxAge);
+      return true;
+    });
+  }
+
+  function updateExplosion(dt) {
+    explosionParticles = explosionParticles.filter(p => {
+      p.age += dt;
+      if (p.age > p.maxAge) { scene.remove(p.mesh); return false; }
+      p.mesh.position.addScaledVector(p.vel, dt * 60);
+      p.vel.y -= dt * 2; // gravity
+      p.mat.opacity = Math.max(0, 1 - p.age / p.maxAge);
+      return true;
+    });
+  }
+
+  let lastFrameTime = performance.now();
+  let animId;
+  function animate() {
+    animId = requestAnimationFrame(animate);
+    const now = performance.now();
+    const dt = Math.min((now - lastFrameTime) / 1000, 0.05);
+    lastFrameTime = now;
+
+    // ── Ground scroll speed scales with |velocity| ──
+    // Base speed + strong multiplier so fast price moves = fast ground rush
+    const absVel = Math.abs(state.vel);
+    const groundSpeed = 1.2 + absVel * 200;   // vel is fractional (0.001 typical), so *200 gives noticeable range
+    groundOffset = (groundOffset + groundSpeed * dt) % GRID_STEP;
+
+    // Scroll lateral lines by adjusting their Z position cyclically
+    groundLines.forEach(({ line, baseZ }) => {
+      const shifted = ((baseZ + groundOffset * GRID_STEP) % (GRID_ROWS * GRID_STEP));
+      line.position.z = groundOffset;
+    });
+    // Simple uniform Z shift on whole group approach — move each lateral line's mesh
+    groundLines.forEach(({ line }, idx) => {
+      const cycleLen = GRID_ROWS * GRID_STEP;
+      const rawZ = groundLines[idx].baseZ + groundOffset;
+      const wrappedZ = ((rawZ % cycleLen) + cycleLen) % cycleLen - cycleLen;
+      line.position.z = wrappedZ - groundLines[idx].baseZ;
+    });
+
+    // Dynamic grid color
+    updateGridColor();
+
+    // Jet attitude
+    const targetP = Math.max(-.55, Math.min(.55, state.vel * 8));
+    const total = state.buyVol + state.sellVol;
+    const bp = total > 0 ? state.buyVol / total : .5;
+    const targetR = (bp - .5) * 1.3;
+    state.pitch += (targetP - state.pitch) * .07;
+    state.roll  += (targetR - state.roll)  * .07;
+
+    jet.rotation.x = state.pitch;
+    jet.rotation.z = state.roll;
+    jet.position.y = Math.sin(now * .0018) * .14;
+    jet.position.x = Math.sin(now * .0009) * .08;
+
+    updateMissiles(dt);
+    updateEnemy(dt, now);
+    updateTracers(dt);
+    updateExplosion(dt);
+    updateStars(dt);
+    renderer.render(scene, camera);
+    updateInstruments();
+  }
+
+  // ─── INSTRUMENTS ───
+  function updateInstruments() {
+    const total = state.buyVol + state.sellVol;
+    const bp = total > 0 ? (state.buyVol/total*100) : 50;
+    const sp = 100 - bp;
+
+    document.getElementById('buy-bar').style.width = bp + '%';
+    document.getElementById('sell-bar').style.width = sp + '%';
+    document.getElementById('buy-pct').textContent = bp.toFixed(0)+'%';
+    document.getElementById('sell-pct').textContent = sp.toFixed(0)+'%';
+
+    // Horizon
+    const pd = state.pitch*(180/Math.PI);
+    const rd = state.roll*(180/Math.PI);
+    const tf = `translateY(${pd*3}px) rotate(${rd}deg)`;
+    document.getElementById('h-sky').style.transform = tf;
+    document.getElementById('h-grd').style.transform = tf;
+    document.getElementById('h-line').style.transform = tf;
+    document.getElementById('h-label').textContent = `P:${pd.toFixed(1)}° R:${rd.toFixed(1)}°`;
+
+    // Heading tape
+    const hOff = -(bp-50)*1.8;
+    document.getElementById('heading-tape').style.transform = `translateX(${hOff}px)`;
+
+    // G-force
+    const g = 1 + Math.abs(state.acc) * 40;
+    const gEl = document.getElementById('g-val');
+    gEl.textContent = g.toFixed(1)+'G';
+    gEl.style.color = g > 2 ? 'var(--red)' : (g > 1.5 ? 'var(--yellow)' : 'var(--orange)');
+
+    // VSI
+    const vsi = (state.vel * 100);
+    const vsiEl = document.getElementById('vsi-val');
+    vsiEl.textContent = (vsi >= 0 ? '+' : '') + vsi.toFixed(2);
+    vsiEl.style.color = vsi > 0 ? 'var(--green)' : (vsi < 0 ? 'var(--red)' : 'var(--cyan)');
+
+    // Velocity
+    document.getElementById('vel-val').textContent = (state.vel >= 0 ? '+' : '') + (state.vel*100).toFixed(3)+'%';
+    document.getElementById('vel-val').style.color = state.vel >= 0 ? 'var(--green)' : 'var(--red)';
+
+    // Alt
+    if (state.price > 0) {
+      document.getElementById('alt-val').textContent = '$'+state.price.toFixed(0);
+      document.getElementById('alt-hi').textContent = '$'+(state.hi||0).toFixed(0);
+      document.getElementById('alt-lo').textContent = '$'+(state.lo===Infinity?0:state.lo).toFixed(0);
+    }
+
+    // CVD trend bottom bar
+    const cvdTrend = state.cvd >= 0 ? '▲ LONG' : '▼ SHORT';
+    const cvdEl = document.getElementById('bb-cvd');
+    cvdEl.textContent = cvdTrend;
+    cvdEl.style.color = state.cvd >= 0 ? 'var(--green)' : 'var(--red)';
+
+    // Momentum
+    const momEl = document.getElementById('bb-mom');
+    const mom = state.vel * 1000;
+    momEl.textContent = (mom >= 0 ? '+' : '') + mom.toFixed(1);
+    momEl.style.color = mom > 0 ? 'var(--green)' : (mom < 0 ? 'var(--red)' : 'var(--text)');
+
+    // BB Position %
+    const bbPosEl = document.getElementById('bb-bbpos');
+    if (bbPosEl && state.ind.bbUp && state.ind.bbLo && state.price > 0) {
+      const range = state.ind.bbUp - state.ind.bbLo;
+      const pos = range > 0 ? ((state.price - state.ind.bbLo) / range * 100) : 50;
+      bbPosEl.textContent = pos.toFixed(0) + '%';
+      bbPosEl.style.color = pos > 80 ? 'var(--red)' : (pos < 20 ? 'var(--green)' : 'var(--text)');
+    }
+
+    // Open position
+    updateOpenPosition();
+  }
+
+  // ─── CLOCK ───
+  function updateClock() {
+    const now = new Date();
+    const hh = String(now.getUTCHours()).padStart(2,'0');
+    const mm = String(now.getUTCMinutes()).padStart(2,'0');
+    const ss = String(now.getUTCSeconds()).padStart(2,'0');
+    document.getElementById('bb-clock').textContent = `${hh}:${mm}:${ss}`;
+
+    // Session label
+    const h = now.getUTCHours();
+    let session = 'SYDNEY';
+    if (h >= 7 && h < 16) session = 'LONDON';
+    if (h >= 13 && h < 22) session = 'NEW YORK';
+    if (h >= 0 && h < 7)  session = 'ASIA';
+    document.getElementById('bb-session').textContent = session;
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  // ─── SENTIMENT (composite score → arc needle) ───
+  function updateSentiment(score, isLong) {
+    // score 0-8, map to 0-100 sentiment
+    // isLong shifts it toward greed, !isLong toward fear
+    const base = 50;
+    const raw = isLong ? base + (score/8)*50 : base - (score/8)*50;
+    const clamped = Math.max(0, Math.min(100, raw));
+
+    // Needle: rotates from -90deg (far left=0) to +90deg (far right=100)
+    const angle = -90 + (clamped / 100) * 180; // degrees
+    const rad = angle * Math.PI / 180;
+    const cx = 60, cy = 60, len = 38;
+    const x2 = cx + Math.sin(rad) * len;  // sin because 0° is up when rotated
+    const y2 = cy - Math.cos(rad) * len;
+    const needle = document.getElementById('sent-needle');
+    if (needle) { needle.setAttribute('x2', x2.toFixed(1)); needle.setAttribute('y2', y2.toFixed(1)); }
+
+    const scoreEl = document.getElementById('sent-score');
+    if (scoreEl) scoreEl.textContent = Math.round(clamped);
+
+    const label = document.getElementById('sent-label');
+    let txt, col;
+    if (clamped < 20) { txt='EXTREME FEAR'; col='var(--red)'; }
+    else if (clamped < 40) { txt='FEAR'; col='#e86030'; }
+    else if (clamped < 60) { txt='NEUTRAL'; col='var(--orange)'; }
+    else if (clamped < 80) { txt='GREED'; col='#80db40'; }
+    else { txt='EXTREME GREED'; col='var(--green)'; }
+    if (label) { label.textContent=txt; label.style.color=col; }
+    if (scoreEl) scoreEl.setAttribute('fill', col);
+  }
+
+  // ─── OPEN POSITION TRACKER (runs every frame) ───
+  function updateOpenPosition() {
+    if (state.active.length === 0) {
+      document.getElementById('op-dir').textContent = 'NONE';
+      document.getElementById('op-dir').style.color = 'var(--text-mid)';
+      document.getElementById('op-unreal').textContent = '——';
+      document.getElementById('op-unreal').style.color = 'var(--text-mid)';
+      document.getElementById('op-dist-tp1').textContent = '——';
+      document.getElementById('op-dist-sl').textContent = '——';
+      document.getElementById('op-dur').textContent = '——';
+      return;
+    }
+    const t = state.active[0];
+    const p = state.price;
+    const isL = t.dir === 'LONG';
+    const risk = Math.abs(t.entry - t.stop);
+    const rawR = isL ? (p - t.entry) / risk : (t.entry - p) / risk;
+    const unreal = rawR + (t.tp1Hit ? 0.75 : 0);
+
+    const dirEl = document.getElementById('op-dir');
+    dirEl.textContent = t.dir;
+    dirEl.style.color = isL ? 'var(--green)' : 'var(--red)';
+
+    const urEl = document.getElementById('op-unreal');
+    urEl.textContent = (unreal >= 0 ? '+' : '') + unreal.toFixed(2) + 'R';
+    urEl.style.color = unreal > 0 ? 'var(--green)' : (unreal < -0.3 ? 'var(--red)' : 'var(--yellow)');
+
+    const distTP1 = isL ? (t.tp1 - p) : (p - t.tp1);
+    const distSL  = isL ? (p - t.stop) : (t.stop - p);
+    document.getElementById('op-dist-tp1').textContent = '$' + Math.abs(distTP1).toFixed(0) + (distTP1 <= 0 ? ' ✓' : '');
+    document.getElementById('op-dist-tp1').style.color = distTP1 <= 0 ? 'var(--green)' : 'var(--text)';
+    document.getElementById('op-dist-sl').textContent = '$' + Math.abs(distSL).toFixed(0);
+    document.getElementById('op-dist-sl').style.color = distSL < risk * 0.3 ? 'var(--red)' : 'var(--text)';
+
+    const secs = Math.floor((Date.now() - t.time) / 1000);
+    const m = Math.floor(secs/60), s = secs%60;
+    document.getElementById('op-dur').textContent = `${m}m ${s}s`;
+  }
+
+  // ─── SIGNAL LOG ───
+  function addSignalLog(trade, result) {
+    const log = document.getElementById('sig-log');
+    const el = document.createElement('div');
+    const isL = trade.dir === 'LONG';
+    const now = new Date();
+    const time = `${String(now.getUTCHours()).padStart(2,'0')}:${String(now.getUTCMinutes()).padStart(2,'0')}`;
+    const pnlStr = result === 'open' ? '—' : (trade.pnl > 0 ? '+'+trade.pnl.toFixed(1)+'R' : trade.pnl.toFixed(1)+'R');
+    const cls = result === 'open' ? 'open' : (trade.pnl > 0 ? 'win' : 'loss');
+    el.className = 'sig-log-item ' + cls;
+    el.style.color = result === 'open' ? 'var(--orange)' : (trade.pnl > 0 ? 'var(--green)' : 'var(--red)');
+    el.innerHTML = `<span>${time}</span><span>${isL ? '▲ LONG' : '▼ SHORT'}</span><span>$${trade.entry.toFixed(0)}</span><span>${pnlStr}</span>`;
+    log.prepend(el);
+    while (log.children.length > 8) log.lastChild.remove();
+  }
+
+  // Update open log item when trade closes
+  function refreshSignalLog() {
+    const log = document.getElementById('sig-log');
+    // Update first open item
+    const openItem = log.querySelector('.open');
+    if (!openItem && state.active.length > 0) {
+      addSignalLog(state.active[0], 'open');
+    }
+  }
+  function spawnBlip(side, value) {
+    const radar = document.getElementById('radar');
+    const b = document.createElement('div');
+    b.className = 'radar-blip';
+    const a = Math.random()*Math.PI*2, d = 10+Math.random()*28;
+    b.style.cssText = `left:${50+Math.cos(a)*d}%;top:${50+Math.sin(a)*d}%;` +
+      `width:${value>25000?8:4}px;height:${value>25000?8:4}px;` +
+      `background:${side==='BUY'?'var(--green)':'var(--red)'};` +
+      `box-shadow:0 0 4px ${side==='BUY'?'var(--green)':'var(--red)'};`;
+    radar.appendChild(b);
+    setTimeout(()=>b.remove(), 1500);
+  }
+
+  // ─── INDICATORS ───
+  function calcRSI(closes, p=14) {
+    if(closes.length < p+1) return null;
+    let g=0,l=0;
+    for(let i=closes.length-p;i<closes.length;i++){
+      const d=closes[i]-closes[i-1];
+      d>0?g+=d:l-=d;
+    }
+    if(l===0) return 100;
+    return 100-(100/(1+(g/p)/(l/p)));
+  }
+
+  function calcEMA(d, p) {
+    if(d.length<p) return null;
+    const k=2/(p+1);
+    let e=d.slice(0,p).reduce((a,b)=>a+b,0)/p;
+    for(let i=p;i<d.length;i++) e=d[i]*k+e*(1-k);
+    return e;
+  }
+
+  function calcATR(candles, p=14) {
+    if(candles.length<p+1) return null;
+    const trs=[];
+    for(let i=1;i<candles.length;i++)
+      trs.push(Math.max(candles[i].hi-candles[i].lo, Math.abs(candles[i].hi-candles[i-1].cl), Math.abs(candles[i].lo-candles[i-1].cl)));
+    return trs.slice(-p).reduce((a,b)=>a+b,0)/p;
+  }
+
+  function calcBB(closes, p=20) {
+    if(closes.length<p) return null;
+    const s=closes.slice(-p), sma=s.reduce((a,b)=>a+b,0)/p;
+    const std=Math.sqrt(s.reduce((a,x)=>a+Math.pow(x-sma,2),0)/p);
+    return {up:sma+2*std, lo:sma-2*std};
+  }
+
+  function calcVWAP(trades) {
+    if(!trades.length) return null;
+    let cv=0,v=0;
+    trades.forEach(t=>{cv+=t.price*t.vol;v+=t.vol;});
+    return v>0?cv/v:null;
+  }
+
+  function updateCandle(price, vol, time) {
+    const t = Math.floor(time/(CANDLE_SEC*1000))*CANDLE_SEC;
+    if(!state.curCandle || state.curCandle.t !== t) {
+      if(state.curCandle) state.candles.push(state.curCandle);
+      if(state.candles.length > 200) state.candles.shift();
+      state.curCandle = {t, op:price, hi:price, lo:price, cl:price, vol};
+    } else {
+      state.curCandle.hi = Math.max(state.curCandle.hi, price);
+      state.curCandle.lo = Math.min(state.curCandle.lo, price);
+      state.curCandle.cl = price;
+      state.curCandle.vol += vol;
+    }
+  }
+
+  function runIndicators() {
+    const candles = [...state.candles];
+    if(state.curCandle) candles.push(state.curCandle);
+    if(candles.length < 15) return;
+    const closes = candles.map(c=>c.cl);
+
+    // RSI
+    const rsi = calcRSI(closes);
+    state.ind.rsi = rsi;
+    if(rsi !== null) {
+      const el = document.getElementById('rsi-val');
+      el.textContent = rsi.toFixed(0);
+      const arc = document.getElementById('rsi-arc');
+      arc.style.strokeDashoffset = 150.8 - (rsi/100*150.8);
+      if(rsi > 70) { el.style.color='var(--red)'; arc.style.stroke='var(--red)'; document.getElementById('rsi-zone').textContent='OVERBOUGHT'; document.getElementById('rsi-zone').style.color='var(--red)'; }
+      else if(rsi < 30) { el.style.color='var(--green)'; arc.style.stroke='var(--green)'; document.getElementById('rsi-zone').textContent='OVERSOLD'; document.getElementById('rsi-zone').style.color='var(--green)'; }
+      else { el.style.color='var(--orange)'; arc.style.stroke='var(--orange)'; document.getElementById('rsi-zone').textContent='NEUTRAL'; document.getElementById('rsi-zone').style.color='var(--text-dim)'; }
+    }
+
+    // MACD
+    if(candles.length >= 26) {
+      const e12=calcEMA(closes,12), e26=calcEMA(closes,26);
+      const macd = e12&&e26?e12-e26:null;
+      state.ind.macdPrev = state.ind.macd;
+      state.ind.macd = macd;
+      if(macd!==null) {
+        const el=document.getElementById('macd-val');
+        el.textContent=(macd>=0?'+':'')+macd.toFixed(2);
+        el.style.color=macd>0?'var(--green)':'var(--red)';
+      }
+      state.ind.ready = true;
+    }
+
+    // ATR
+    const atr=calcATR(candles);
+    state.ind.atr=atr;
+    if(atr) document.getElementById('atr-val').textContent='$'+atr.toFixed(2);
+
+    // BB
+    if(candles.length>=20) {
+      const bb=calcBB(closes);
+      if(bb){ state.ind.bbUp=bb.up; state.ind.bbLo=bb.lo; }
+    }
+
+    // VWAP
+    const vwap=calcVWAP(state.trades.slice(-500));
+    state.ind.vwap=vwap;
+    if(vwap){
+      const el=document.getElementById('vwap-val');
+      el.textContent='$'+vwap.toFixed(0);
+      el.style.color=state.price>vwap?'var(--green)':'var(--red)';
+    }
+
+    evaluateSignal();
+  }
+
+  function evaluateSignal() {
+    const {ind, price, ob} = state;
+    const now = Date.now();
+    const t1  = state.trades.filter(t=>t.time>now-60000);
+    const t5  = state.trades.filter(t=>t.time>now-300000);
+    const t15 = state.trades.filter(t=>t.time>now-900000);
+
+    const cvd1  = t1.reduce((d,t)=>d+(t.side==='BUY'?t.vol:-t.vol),0);
+    const cvd5  = t5.reduce((d,t)=>d+(t.side==='BUY'?t.vol:-t.vol),0);
+    const cvd15 = t15.reduce((d,t)=>d+(t.side==='BUY'?t.vol:-t.vol),0);
+    const wf    = t5.filter(t=>t.val>10000).reduce((f,t)=>f+(t.side==='BUY'?t.val:-t.val),0);
+
+    document.getElementById('whale-flow').textContent=(wf>0?'+':'')+'$'+(wf/1000).toFixed(0)+'K';
+    document.getElementById('whale-flow').style.color=wf>0?'var(--green)':'var(--red)';
+    document.getElementById('cvd-1m').textContent=(cvd1>=0?'+':'')+cvd1.toFixed(3);
+    document.getElementById('cvd-1m').style.color=cvd1>=0?'var(--green)':'var(--red)';
+    document.getElementById('cvd-5m').textContent=(cvd5>=0?'+':'')+cvd5.toFixed(2);
+    document.getElementById('cvd-5m').style.color=cvd5>=0?'var(--green)':'var(--red)';
+
+    const baR = ob.ask>0 ? ob.bid/ob.ask : 1;
+    document.getElementById('ba-ratio').textContent=baR.toFixed(3);
+    document.getElementById('ba-ratio').style.color=baR>1?'var(--green)':'var(--red)';
+
+    // ── REDESIGNED SIGNAL ENGINE ──
+    // Two separate strategies that don't conflict:
+    // LONG:  Momentum continuation — trend up, dip to VWAP, CVD recovering
+    // SHORT: Momentum continuation — trend down, rally to VWAP, CVD weakening
+    // No contradictory "below BB AND all CVDs positive" nonsense.
+
+    const atr = ind.atr || 0;
+
+    // EMA trend proxy: use price vs VWAP as trend direction indicator
+    // plus CVD15 as the longer-term flow
+    const trendUp   = ind.vwap ? price > ind.vwap * 0.999 : false;  // price above VWAP = uptrend
+    const trendDown = ind.vwap ? price < ind.vwap * 1.001 : false;  // price below VWAP = downtrend
+
+    // MACD direction
+    const macdUp   = ind.macd !== null && ind.macd > 0;
+    const macdDown = ind.macd !== null && ind.macd < 0;
+
+    // BB squeeze / expansion — ATR relative to BB width
+    const bbWidth  = (ind.bbUp && ind.bbLo) ? ind.bbUp - ind.bbLo : 0;
+    const bbMid    = (ind.bbUp && ind.bbLo) ? (ind.bbUp + ind.bbLo) / 2 : price;
+
+    // ── LONG CONDITIONS (momentum continuation + mean reversion blend) ──
+    const LC = {
+      // 1. RSI in healthy range — not overbought, not in freefall
+      rsi:    ind.rsi !== null && ind.rsi > 30 && ind.rsi < 65,
+
+      // 2. Short-term CVD turning positive (buyers stepping in)
+      cvd:    cvd1 > 0 && cvd5 >= 0,
+
+      // 3. Whale net buying in last 5 min
+      whale:  wf > 2000,
+
+      // 4. Price pulling back to or below BB midpoint — entry at value
+      bb:     ind.bbLo !== null && price < bbMid * 1.002,
+
+      // 5. Price above VWAP — confirms uptrend context
+      vwap:   ind.vwap !== null && trendUp,
+
+      // 6. Order book bid-heavy
+      ob:     baR > 1.08,
+
+      // 7. MACD positive — momentum with us
+      macd:   macdUp,
+
+      // 8. 15-min CVD positive — longer flow confirming direction
+      trend:  cvd15 > 0
+    };
+
+    // ── SHORT CONDITIONS (mirror logic) ──
+    const SC = {
+      rsi:    ind.rsi !== null && ind.rsi > 35 && ind.rsi < 70,
+      cvd:    cvd1 < 0 && cvd5 <= 0,
+      whale:  wf < -2000,
+      bb:     ind.bbUp !== null && price > bbMid * 0.998,
+      vwap:   ind.vwap !== null && trendDown,
+      ob:     baR < 0.92,
+      macd:   macdDown,
+      trend:  cvd15 < 0
+    };
+
+    const ls = Object.values(LC).filter(Boolean).length;
+    const ss = Object.values(SC).filter(Boolean).length;
+
+    // Must have a clear winner and at least 5/8 for ACQUIRING, 6/8 for entry
+    const isL   = ls >= ss;
+    const conds = isL ? LC : SC;
+    const score = isL ? ls : ss;
+
+    // ── Update warning lights ──
+    const condKeys = ['rsi','cvd','whale','bb','vwap','ob','macd','trend'];
+    const lightIds = ['w-rsi','w-cvd','w-whale','w-bb','w-vwap','w-ob','w-atr','w-trend'];
+    condKeys.forEach((k,i) => {
+      const el = document.getElementById(lightIds[i]);
+      if (el) el.className = 'warn-light' + (conds[k] ? ' ok' : '');
+    });
+
+    const pct = score/8*100;
+    document.getElementById('cond-fill').style.width = pct+'%';
+    document.getElementById('cond-fill').style.background = score>=6?'var(--green)':(score>=5?'var(--orange)':'var(--red)');
+    document.getElementById('sig-confidence').textContent = `CONDITIONS: ${score} / 8`;
+    updateSentiment(score, isL);
+
+    const sigDir  = document.getElementById('sig-direction');
+    const badge   = document.getElementById('sig-badge');
+    const lockEl  = document.getElementById('lock-corners');
+    const lcEls   = ['lc1','lc2','lc3','lc4'].map(id=>document.getElementById(id));
+
+    if (score >= 6 && ls !== ss) {
+      const dir = isL ? 'LONG' : 'SHORT';
+      sigDir.textContent  = isL ? '▲  LONG' : '▼  SHORT';
+      sigDir.style.color  = isL ? 'var(--green)' : 'var(--red)';
+      badge.textContent   = dir;
+      badge.className     = 'sig-badge ' + (isL ? 'long' : 'short');
+      lockEl.classList.add('active');
+      lcEls.forEach(e => {
+        if (!e) return;
+        e.className = e.className.replace(' short','');
+        if (!isL) e.className += ' short';
+      });
+
+      if (state.price > 0) {
+        // ── POSITION SIZING: ATR-scaled stops ──
+        // Use 1.0× ATR stop (tighter = smaller loss if wrong)
+        // TP1 at 1.0× risk (1:1 R:R — partial exit to lock profit)
+        // TP2 at 2.0× risk (trail to breakeven after TP1)
+        const useATR  = Math.max(atr, 30);    // floor at $30 to avoid div-by-zero on fresh data
+        const entry   = price;
+        const stop    = isL ? entry - useATR : entry + useATR;
+        const risk    = Math.abs(entry - stop);
+        const tp1     = isL ? entry + risk       : entry - risk;        // 1:1
+        const tp2     = isL ? entry + risk * 2.2 : entry - risk * 2.2; // 2.2:1
+
+        document.getElementById('p-entry').textContent = '$'+entry.toFixed(0);
+        document.getElementById('p-stop').textContent  = '$'+stop.toFixed(0);
+        document.getElementById('p-tp1').textContent   = '$'+tp1.toFixed(0);
+        document.getElementById('p-tp2').textContent   = '$'+tp2.toFixed(0);
+
+        if (state.active.length === 0 && now > state.cooldownUntil) {
+          const lastClose = state.closed[state.closed.length-1]?.closeTime || 0;
+          if (now - lastClose > 30000) {   // 30s minimum gap — don't spam
+            enterTrade(dir, entry, stop, tp1, tp2);
+          }
+        }
+      }
+
+    } else {
+      sigDir.textContent = score >= 5 ? 'ACQUIRING' : 'SCANNING';
+      sigDir.style.color = score >= 5 ? 'var(--yellow)' : 'var(--text-mid)';
+      badge.textContent  = score >= 5 ? 'ACQUIRING' : 'SCANNING';
+      badge.className    = 'sig-badge';
+      lockEl.classList.remove('active');
+
+      if (score >= 5 && enemyState === 'none') {
+        spawnEnemy(isL ? 'LONG' : 'SHORT');
+      }
+      if (score < 5 && enemyState === 'approaching') {
+        triggerEnemyEscape();
+      }
+    }
+
+    checkTrades();
+  }
+
+  function enterTrade(dir,entry,stop,tp1,tp2){
+    const t = {id:Date.now(),time:Date.now(),dir,entry,stop,tp1,tp2,tp1Hit:false,pnl:0};
+    state.active.push(t);
+    document.getElementById('bb-active').textContent=state.active.length;
+    addSignalLog(t, 'open');
+    // Transition enemy from approaching → dogfight
+    if (enemyJet && enemyState === 'approaching') {
+      enemyState = 'dogfight';
+      enemyAge = 0;
+    } else {
+      // If somehow no enemy, spawn one in dogfight immediately
+      spawnEnemy(dir);
+      setTimeout(() => { if (enemyState === 'approaching') { enemyState = 'dogfight'; enemyAge = 0; } }, 800);
+    }
+    // 🚀 Fire homing missiles on signal entry
+    const salvo = 2 + Math.floor(Math.random()*2);
+    for(let i=0;i<salvo;i++){
+      setTimeout(()=>fireMissile(dir), i * 200);
+    }
+  }
+
+  function checkTrades(){
+    const p = state.price;
+    const now = Date.now();
+    state.active.forEach(t => {
+      if (t.status === 'closed') return;
+      const L = t.dir === 'LONG';
+
+      // Timeout: if no TP1 after 10min, exit flat (0R) — don't hold dead trades
+      if (!t.tp1Hit && now - t.time > 600000) {
+        closeTrade(t, 0);
+        return;
+      }
+
+      // Stop hit — after TP1, stop is at entry so result = 0R not -1R
+      if ((L && p <= t.stop) || (!L && p >= t.stop)) {
+        closeTrade(t, t.tp1Hit ? 0 : -1);
+        return;
+      }
+
+      // TP1 hit — trail stop to breakeven immediately
+      if (!t.tp1Hit && ((L && p >= t.tp1) || (!L && p <= t.tp1))) {
+        t.tp1Hit = true;
+        t.stop = t.entry;  // breakeven stop — worst case now 0R
+      }
+
+      // TP2 hit — full close
+      if (t.tp1Hit && ((L && p >= t.tp2) || (!L && p <= t.tp2))) {
+        closeTrade(t, 2.2);
+      }
+    });
+    state.active = state.active.filter(t => t.status !== 'closed');
+    document.getElementById('bb-active').textContent = state.active.length;
+  }
+
+  function closeTrade(t,r){
+    t.status='closed'; t.pnl=r; t.closeTime=Date.now();
+    if(r>0) state.wins++; else state.losses++;
+    state.pnl += r*100;
+    state.closed.push(t);
+    state.cooldownUntil = Date.now() + 60000;
+
+    // 🎯 Win = blow up enemy, Loss = enemy escapes
+    if (r > 0) {
+      triggerEnemyDeath();
+      // Victory missile salvo
+      for(let i=0;i<4;i++) setTimeout(()=>fireMissile(t.dir), i*120);
+    } else {
+      triggerEnemyEscape();
+    }
+
+    // Update signal log — replace open entry
+    const log = document.getElementById('sig-log');
+    const openItem = log.querySelector('.open');
+    if (openItem) {
+      openItem.className = 'sig-log-item ' + (r>0?'win':'loss');
+      openItem.style.color = r>0?'var(--green)':'var(--red)';
+      const spans = openItem.querySelectorAll('span');
+      if (spans[3]) spans[3].textContent = (r>0?'+':'')+r.toFixed(1)+'R';
+    } else {
+      addSignalLog(t, 'closed');
+    }
+
+    // Streak
+    let streak = 0;
+    for (let i=state.closed.length-1;i>=0;i--) {
+      const last = state.closed[i];
+      if (last.pnl > 0 && r > 0) streak++;
+      else if (last.pnl < 0 && r < 0) streak++;
+      else break;
+    }
+    const streakEl = document.getElementById('p-streak');
+    if(streakEl){ streakEl.textContent = streak; streakEl.style.color = r>0?'var(--green)':'var(--red)'; }
+
+    // Avg duration
+    const durations = state.closed.filter(x=>x.closeTime).map(x=>x.closeTime-x.time);
+    if(durations.length>0){
+      const avgMs = durations.reduce((a,b)=>a+b,0)/durations.length;
+      const avgMin = Math.floor(avgMs/60000);
+      const avgSec = Math.floor((avgMs%60000)/1000);
+      const durEl = document.getElementById('p-avgdur');
+      if(durEl) durEl.textContent=`${avgMin}m${avgSec}s`;
+    }
+
+    // Avg R:R (only wins)
+    const winRs = state.closed.filter(x=>x.pnl>0).map(x=>x.pnl);
+    const avgRR = winRs.length>0 ? winRs.reduce((a,b)=>a+b,0)/winRs.length : null;
+    const rrEl = document.getElementById('p-rr');
+    if(rrEl) rrEl.textContent = avgRR ? avgRR.toFixed(1)+'R' : '——';
+
+    document.getElementById('p-wins').textContent=state.wins;
+    document.getElementById('p-losses').textContent=state.losses;
+    const pnlEl=document.getElementById('pnl-val');
+    pnlEl.textContent=(state.pnl>=0?'+':'')+'$'+state.pnl.toFixed(0);
+    pnlEl.style.color=state.pnl>=0?'var(--green)':'var(--red)';
+    const tot=state.wins+state.losses;
+    const wrStr = tot>0?((state.wins/tot)*100).toFixed(0)+'%':'——';
+    document.getElementById('wr').textContent=wrStr;
+    const wr2=document.getElementById('wr2'); if(wr2){ wr2.textContent=wrStr; wr2.style.color=state.wins/Math.max(tot,1)>=0.5?'var(--green)':'var(--red)'; }
+    document.getElementById('p-signals').textContent=state.closed.length+state.active.length;
+    const bsEl=document.getElementById('bb-sigs'); if(bsEl) bsEl.textContent=state.closed.length+state.active.length;
+  }
+
+  // ─── TRADE PROCESSING ───
+  function processTrade(data){
+    const price=parseFloat(data.price), vol=parseFloat(data.amount);
+    const side=data.type===0?'BUY':'SELL', val=price*vol;
+    const now=Date.now(), sec=Math.floor(now/1000);
+
+    if(!state.firstPrice) state.firstPrice=price;
+
+    // TPS
+    if(sec!==state.lastSec){
+      state.tps=state.tradesThisSec; state.tradesThisSec=1; state.lastSec=sec;
+      document.getElementById('tps').textContent=state.tps;
+    } else state.tradesThisSec++;
+
+    // Velocity
+    if(state.price>0){
+      state.prevVel=state.vel;
+      state.vel=state.vel*.88+((price-state.price)/state.price)*.12;
+      state.acc=state.vel-state.prevVel;
+    }
+
+    // Vol
+    if(side==='BUY'){state.buyVol+=vol;state.cvd+=vol;}
+    else{state.sellVol+=vol;state.cvd-=vol;}
+    document.getElementById('buy-vol-val').textContent=state.buyVol.toFixed(3);
+    document.getElementById('sell-vol-val').textContent=state.sellVol.toFixed(3);
+
+    // Session H/L
+    if(!state.hi) state.hi=price;
+    if(state.lo===Infinity) state.lo=price;
+    state.hi=Math.max(state.hi,price);
+    state.lo=Math.min(state.lo,price);
+
+    state.trades.push({time:now,price,vol,side,val});
+    state.trades=state.trades.filter(t=>t.time>now-300000);
+
+    updateCandle(price,vol,now);
+    priceSeries.update({time:sec,value:price});
+
+    state.prevPrice=state.price;
+    state.price=price;
+
+    // UI
+    document.getElementById('price').textContent='$'+price.toLocaleString(undefined,{minimumFractionDigits:2});
+    const pct=(price-state.firstPrice)/state.firstPrice*100;
+    const dEl=document.getElementById('delta');
+    dEl.textContent=(pct>=0?'+':'')+pct.toFixed(2)+'%';
+    dEl.className=pct>=0?'pos':'neg';
+
+    document.getElementById('hi').textContent='$'+state.hi.toFixed(0);
+    document.getElementById('lo').textContent='$'+state.lo.toFixed(0);
+    document.getElementById('vol').textContent=(state.buyVol+state.sellVol).toFixed(2);
+    document.getElementById('cvd-total').textContent=(state.cvd>=0?'+':'')+state.cvd.toFixed(3);
+    document.getElementById('cvd-total').style.color=state.cvd>=0?'var(--green)':'var(--red)';
+
+    addToTape({side,price,vol,val});
+    spawnBlip(side,val);
+  }
+
+  function addToTape({side,price,vol,val}){
+    const tape=document.getElementById('tape');
+    const d=document.createElement('div');
+    const whale=val>=25000,big=val>=10000&&!whale;
+    d.className='tape-item '+side.toLowerCase()+(whale?' whale':(big?' big':''));
+    d.innerHTML=`<span>${side[0]}</span><span>$${price.toFixed(0)}</span><span>${vol.toFixed(3)}</span><span>${(val/1000).toFixed(0)}K</span>`;
+    tape.prepend(d);
+    while(tape.children.length>60) tape.lastChild.remove();
+  }
+
+  function updateOrderBook(data){
+    let b=0,a=0;
+    data.bids.slice(0,10).forEach(x=>b+=parseFloat(x[1]));
+    data.asks.slice(0,10).forEach(x=>a+=parseFloat(x[1]));
+    state.ob={bid:b,ask:a,spread:parseFloat(data.asks[0][0])-parseFloat(data.bids[0][0])};
+    const imb=((b-a)/(b+a)*100);
+    document.getElementById('imb').textContent=(imb>0?'+':'')+imb.toFixed(1)+'%';
+    document.getElementById('imb').style.color=imb>0?'var(--green)':'var(--red)';
+    document.getElementById('bb-spread').textContent='$'+state.ob.spread.toFixed(2);
+    document.getElementById('bb-bid').textContent=b.toFixed(2);
+    document.getElementById('bb-ask').textContent=a.toFixed(2);
+  }
+
+  // ─── WS ───
+  function connect(){
+    const ws=new WebSocket('wss://ws.bitstamp.net');
+    ws.onopen=()=>{
+      ws.send(JSON.stringify({event:'bts:subscribe',data:{channel:'live_trades_btcusd'}}));
+      ws.send(JSON.stringify({event:'bts:subscribe',data:{channel:'order_book_btcusd'}}));
+    };
+    ws.onmessage=(e)=>{
+      const m=JSON.parse(e.data);
+      if(m.event==='trade') processTrade(m.data);
+      if(m.channel==='order_book_btcusd'&&m.event==='data') updateOrderBook(m.data);
+    };
+    ws.onclose=()=>setTimeout(connect,2000);
+  }
+
+  function onResize(){
+    chart.applyOptions({width:chartWrap.offsetWidth,height:chartWrap.offsetHeight});
+    if(renderer){
+      renderer.setSize(vp.offsetWidth,vp.offsetHeight);
+      camera.aspect=vp.offsetWidth/vp.offsetHeight;
+      camera.updateProjectionMatrix();
+    }
+  }
+
+  // ─── INIT ───
+  initScene();
+  animate();
+  connect();
+  setInterval(runIndicators, 1000);
+  window.addEventListener('resize', onResize);
+  setTimeout(onResize, 120);
+});
+</script>
+</body>
+</html>
