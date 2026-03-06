@@ -1550,6 +1550,18 @@ document.addEventListener('DOMContentLoaded', () => {
   // ─── THREE.JS ───
   const vp = document.getElementById('viewport3d');
   let scene, camera, renderer, jet, groundLines = [], groundMats = [];
+  let audioListener = null;
+  let sndMissile = null, sndExplosion = null, sndMachineGun = null;
+  let shakeTimer = 0;          // screen shake countdown
+
+  function playSound(snd, overlap) {
+    if (!snd || !snd.buffer) return;   // not loaded yet
+    if (snd.isPlaying) {
+      if (!overlap) return;            // don't stack if overlap=false
+      snd.stop();                      // restart if overlap=true
+    }
+    snd.play();
+  }
   let groundOffset = 0;
   let missiles = [];
   let enemyJet = null;       // the enemy fighter
@@ -1565,6 +1577,27 @@ document.addEventListener('DOMContentLoaded', () => {
     camera = new THREE.PerspectiveCamera(65, vp.offsetWidth / vp.offsetHeight, 0.1, 1200);
     camera.position.set(0, 3, 12);
     camera.lookAt(0, 0.5, -80);
+
+    // ── Positional audio — attach listener to camera ──
+    audioListener = new THREE.AudioListener();
+    camera.add(audioListener);
+
+    function loadSound(url, loop, volume) {
+      const snd = new THREE.Audio(audioListener);
+      // Only attempt load if file is likely available (not file:// with no server)
+      const audioLoader = new THREE.AudioLoader();
+      audioLoader.load(
+        url,
+        buffer => { snd.setBuffer(buffer); snd.setVolume(volume); if (loop) snd.setLoop(true); },
+        undefined,
+        err => console.warn('[AUDIO] Could not load ' + url + ' — ' + err.message)
+      );
+      return snd;
+    }
+
+    sndMissile    = loadSound('./missile-launch.mp3',  false, 0.6);
+    sndExplosion  = loadSound('./explosion.mp3',        false, 0.8);
+    sndMachineGun = loadSound('./machine-gun-burst.mp3', false, 0.5);
 
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
     renderer.setSize(vp.offsetWidth, vp.offsetHeight);
@@ -1738,6 +1771,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const spreadY = isLong ? 0.05+Math.random()*0.08 : -0.05-Math.random()*0.08;
 
     scene.add(group);
+    playSound(sndMissile, true);   // overlap=true so rapid salvo fires sound each time
     // Homing if enemy is in dogfight
     const homing = (enemyJet !== null && (enemyState === 'dogfight' || enemyState === 'approaching'));
     missiles.push({
@@ -1764,6 +1798,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (dist < 5) {
           // Kill the hostile — trigger its death animation
           m.hostileTarget.killed = true;
+          playSound(sndExplosion, true);
+          shakeTimer = 0.25;
           // Spawn small explosion at hostile position
           const pos = tgt.clone();
           const exColors = [0xff6600, 0xff3300, 0xffaa00, 0xffffff];
@@ -1901,6 +1937,8 @@ document.addEventListener('DOMContentLoaded', () => {
     enemyState = 'dying';
     // Kill announced via radioUrgent in checkTrades or closeTrade
     enemyAge = 0;
+    playSound(sndExplosion, true);
+    shakeTimer = 0.45;   // seconds of screen shake
     // Spawn explosion particles at enemy position
     const pos = enemyJet.position.clone();
     const colors = [0xff6600, 0xff2200, 0xffaa00, 0xffffff, 0xff4400];
@@ -2047,6 +2085,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const now = performance.now();
     if (now - mgLastFired < 120) return; // 120ms between rounds
     mgLastFired = now;
+    playSound(sndMachineGun, false);  // overlap=false — one burst sound at a time
     const count = 4 + Math.floor(Math.random() * 3); // 4-6 rounds per burst
     for (let i = 0; i < count; i++) {
       setTimeout(() => {
@@ -2344,6 +2383,18 @@ document.addEventListener('DOMContentLoaded', () => {
       mgBurstCount = 0;
     }
     updateStars(dt);
+
+    // Screen shake — decays over shakeTimer seconds
+    if (shakeTimer > 0) {
+      shakeTimer -= dt;
+      const mag = Math.min(shakeTimer, 0.3) * 0.8;
+      camera.position.x = (Math.random()-0.5) * mag;
+      camera.position.y = 3 + (Math.random()-0.5) * mag;
+    } else {
+      camera.position.x = 0;
+      camera.position.y = 3;
+    }
+
     renderer.render(scene, camera);
     updateInstruments();
   }
@@ -2949,7 +3000,7 @@ document.addEventListener('DOMContentLoaded', () => {
       radioAnnounce('Breakeven. Returning to CAP.', 0.66, 0.90);
       triggerEnemyEscape();
     } else {
-      radioAnnounce('Evading. Egress.', 0.65, 0.90);
+      radioAnnounce('Engaging. Egress.', 0.65, 0.90);
       triggerEnemyEscape();
     }
     // Clear hostile bogeys when trade closes
