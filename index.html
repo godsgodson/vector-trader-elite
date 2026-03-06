@@ -1610,6 +1610,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     buildGrid();
     scene.add(buildStars());
+    buildGroundPlane();
+  }
+
+  function buildGroundPlane() {
+    // Flat solid ground under the grid — receives shading from lights
+    const geo = new THREE.PlaneGeometry(400, 800, 1, 1);
+    const mat = new THREE.MeshPhongMaterial({
+      color:     0x040810,
+      emissive:  0x020408,
+      shininess: 0,
+      transparent: true,
+      opacity: 0.92,
+      depthWrite: true
+    });
+    const plane = new THREE.Mesh(geo, mat);
+    plane.rotation.x = -Math.PI / 2;
+    plane.position.set(0, -5.1, -200);
+    scene.add(plane);
   }
 
   // ─── DYNAMIC GRID ───
@@ -1686,7 +1704,6 @@ document.addEventListener('DOMContentLoaded', () => {
       g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(ep),
         new THREE.LineBasicMaterial({color:eColors[i],transparent:true,opacity:1-i*.25})));
     }
-    // Player contrail — blue-white streak trailing behind engine
     const contrailMat = new THREE.LineBasicMaterial({ color: 0x88aaff, transparent: true, opacity: 0.45 });
     const contrail = new THREE.Line(
       new THREE.BufferGeometry().setFromPoints([
@@ -1851,7 +1868,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // ─── ENEMY JET SYSTEM ───
 
   function buildEnemyJet(isLong) {
-    // Mirror of player jet but enemy colored — green for LONG target, red for SHORT
     const g = new THREE.Group();
     const col  = isLong ? 0x1adb6c : 0xe8304a;
     const col2 = isLong ? 0x08ffaa : 0xff2060;
@@ -1859,26 +1875,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const pts = arr => arr.map(p => new THREE.Vector3(...p));
     const ln  = (arr, c, op=1) => new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts(arr)), M(c,op));
 
-    // Fuselage — pointing TOWARD camera (nose at positive Z = toward us)
     g.add(ln([[0,0,7],[.5,.3,4],[.8,.6,1],[.9,.7,-2],[.7,.9,-5],[.3,1.8,-6.5],[0,2.2,-7],[-.3,1.8,-6.5],[-.7,.9,-5],[-.9,.7,-2],[-.8,.6,1],[-.5,.3,4],[0,0,7]], col));
     g.add(ln([[0,0,7],[.5,-.25,4],[.8,-.35,0],[.7,-.25,-4.5],[0,0,-6.5],[-.7,-.25,-4.5],[-.8,-.35,0],[-.5,-.25,4],[0,0,7]], col));
-    // Wings
     g.add(ln([[.9,.25,0],[6.5,-.6,-2.5],[7,-.6,-4],[1.1,.25,-3.5]], col));
     g.add(ln([[-.9,.25,0],[-6.5,-.6,-2.5],[-7,-.6,-4],[-1.1,.25,-3.5]], col));
-    // Wing ribs
     for(let i=1;i<4;i++){
       const x=1+i*1.4, y=.2-i*.2;
       g.add(ln([[x,y,-i*.6],[x,y,-3-i*.2]], col, 0.5));
       g.add(ln([[-x,y,-i*.6],[-x,y,-3-i*.2]], col, 0.5));
     }
-    // Tails
     g.add(ln([[.5,.7,-5],[2.2,.3,-6.5],[2.5,.3,-7],[.6,.8,-6.2]], col));
     g.add(ln([[-.5,.7,-5],[-2.2,.3,-6.5],[-2.5,.3,-7],[-.6,.8,-6.2]], col));
     g.add(ln([[0,1,-4.5],[0,2.2,-7]], col));
-    // Cockpit
     g.add(ln([[0,.5,3.5],[.4,.9,2],[.4,1.1,0],[-.4,1.1,0],[-.4,.9,2],[0,.5,3.5]], col2));
     g.add(ln([[0,1,1.5],[0,.5,3.5]], col2));
-    // Engine glow at rear (pointing away)
     for(let i=0;i<3;i++){
       const r=.38-i*.07, z=-6.4-i*.4, ep=[];
       for(let j=0;j<=20;j++){
@@ -1888,7 +1898,6 @@ document.addEventListener('DOMContentLoaded', () => {
       g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(ep),
         new THREE.LineBasicMaterial({color:col,transparent:true,opacity:0.8-i*.2})));
     }
-    // Enemy ID marker — blinking ring around cockpit
     const ringPts = [];
     for(let j=0;j<=32;j++){
       const a=j/32*Math.PI*2;
@@ -1896,17 +1905,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(ringPts),
       new THREE.LineBasicMaterial({color:col2,transparent:true,opacity:0.4})));
-
-    // Enemy contrail — same color as enemy, trails behind
     const eContrailMat = new THREE.LineBasicMaterial({ color: col2, transparent: true, opacity: 0.35 });
-    const eContrail = new THREE.Line(
-      new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(0, 0.4, -7),
-        new THREE.Vector3(0, 0.4, -22)
-      ]),
+    g.add(new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0.4,-7), new THREE.Vector3(0,0.4,-22)]),
       eContrailMat
-    );
-    g.add(eContrail);
+    ));
     return g;
   }
 
@@ -1924,12 +1927,14 @@ document.addEventListener('DOMContentLoaded', () => {
     radioAnnounce('Bandit. Tally one. Radar lock.', 0.65, 0.88);
     enemyState = 'approaching';
     enemyAge = 0;
+    jetMode = 'tracking'; jetModeAge = 0;
   }
 
   function removeEnemy() {
     if (enemyJet) { scene.remove(enemyJet); enemyJet = null; }
     enemyState = 'none';
     enemyAge = 0;
+    if (jetMode !== 'waggle') { jetMode = 'idle'; jetModeAge = 0; }
   }
 
   function triggerEnemyDeath() {
@@ -1938,7 +1943,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Kill announced via radioUrgent in checkTrades or closeTrade
     enemyAge = 0;
     playSound(sndExplosion, true);
-    shakeTimer = 0.45;   // seconds of screen shake
+    shakeTimer = 0.45;
+    jetMode = 'waggle'; jetModeAge = 0;
     // Spawn explosion particles at enemy position
     const pos = enemyJet.position.clone();
     const colors = [0xff6600, 0xff2200, 0xffaa00, 0xffffff, 0xff4400];
@@ -1970,6 +1976,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!enemyJet) return;
     enemyState = 'escaping';
     enemyAge = 0;
+    jetMode = 'idle'; jetModeAge = 0;
   }
 
   function updateEnemy(dt, now) {
@@ -2057,6 +2064,11 @@ document.addEventListener('DOMContentLoaded', () => {
   let mgBurstNext = 0;     // when next burst is allowed (burst scheduler)
   let mgBurstCount = 0;    // rounds remaining in current burst
 
+  // ── Jet behavior state machine ──
+  let jetMode    = 'idle';   // 'idle' | 'tracking' | 'dogfight' | 'waggle'
+  let jetModeAge = 0;
+  let jetTargetX = 0;
+
   // radioOnce defined globally above
 
   // ── Hostile attackers (bad-trade bogeys) ──
@@ -2127,9 +2139,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const grp  = new THREE.Group();
     const hcol  = 0xff3300;
     const hcol2 = 0xff7700;
-    const M  = (c) => new THREE.LineBasicMaterial({ color: c });
+    const M = (c) => new THREE.LineBasicMaterial({ color: c });
     const pts = arr => arr.map(p => new THREE.Vector3(...p));
-    const ln  = (arr, c) => new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts(arr)), M(c));
+    const ln = (arr, c) => new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts(arr)), M(c));
     grp.add(ln([[0,0,5],[.4,.2,3],[.7,.5,0],[.8,.6,-2],[.5,1.4,-4],[0,1.8,-5],[-.5,1.4,-4],[-.8,.6,-2],[-.7,.5,0],[-.4,.2,3],[0,0,5]], hcol));
     grp.add(ln([[.7,.3,0],[5.5,-.4,-1.5],[5.8,-.4,-2.5],[.9,.3,-2.5]], hcol));
     grp.add(ln([[-.7,.3,0],[-5.5,-.4,-1.5],[-5.8,-.4,-2.5],[-.9,.3,-2.5]], hcol));
@@ -2327,7 +2339,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── Ground scroll speed scales with |velocity| ──
     // Base speed + strong multiplier so fast price moves = fast ground rush
     const absVel = Math.abs(state.vel);
-    const groundSpeed = 1.2 + absVel * 200;   // vel is fractional (0.001 typical), so *200 gives noticeable range
+    const groundSpeed = 15.0 + absVel * 200;   // vel is fractional (0.001 typical), so *200 gives noticeable range
     groundOffset = (groundOffset + groundSpeed * dt) % GRID_STEP;
 
     // Scroll lateral lines by adjusting their Z position cyclically
@@ -2347,18 +2359,44 @@ document.addEventListener('DOMContentLoaded', () => {
     updateGridColor();
 
 
-    // Jet attitude
-    const targetP = Math.max(-.55, Math.min(.55, state.vel * 8));
-    const total = state.buyVol + state.sellVol;
-    const bp = total > 0 ? state.buyVol / total : .5;
-    const targetR = (bp - .5) * 1.3;
-    state.pitch += (targetP - state.pitch) * .07;
-    state.roll  += (targetR - state.roll)  * .07;
+    // ── Jet attitude ──
+    const _total = state.buyVol + state.sellVol;
+    const bp     = _total > 0 ? state.buyVol / _total : 0.5;
+    // Pitch: very subtle, capped tight so nose never looks extreme
+    const targetP = Math.max(-0.12, Math.min(0.12, state.vel * 3));
+    // Base roll: buy/sell pressure, kept gentle
+    const targetBaseRoll = (bp - 0.5) * 0.6;
 
+    jetModeAge += dt;
+
+    // Target X — follows enemy laterally during dogfight, gentle drift otherwise
+    if ((jetMode === 'dogfight' || jetMode === 'tracking') && enemyJet) {
+      jetTargetX = enemyJet.position.x * 0.1;
+    } else {
+      jetTargetX = Math.sin(now * 0.00045) * 0.4 + Math.cos(now * 0.00028) * 0.15;
+    }
+
+    // Roll target
+    let targetRoll = targetBaseRoll;
+    if ((jetMode === 'dogfight' || jetMode === 'tracking') && enemyJet) {
+      // Gentle bank toward enemy direction
+      targetRoll = targetBaseRoll + enemyJet.position.x * 0.025;
+      targetRoll = Math.max(-0.35, Math.min(0.35, targetRoll));
+    }
+    if (jetMode === 'waggle') {
+      // Wing waggle after kill — two quick rocks then back to neutral
+      const wag = Math.sin(jetModeAge * 14) * Math.max(0, 1 - jetModeAge / 1.2);
+      targetRoll = wag * 0.45;
+      if (jetModeAge > 1.2) { jetMode = 'idle'; jetModeAge = 0; }
+    }
+
+    // Smooth everything
+    state.pitch += (targetP    - state.pitch) * Math.min(dt * 2.5, 1);
+    state.roll  += (targetRoll - state.roll)  * Math.min(dt * 3.0, 1);
     jet.rotation.x = state.pitch;
     jet.rotation.z = state.roll;
-    jet.position.y = Math.sin(now * .0018) * .14;
-    jet.position.x = Math.sin(now * .0009) * .08;
+    jet.position.x += (jetTargetX - jet.position.x) * Math.min(dt * 1.8, 1);
+    jet.position.y  = Math.sin(now * 0.00062) * 0.12;
 
     updateMissiles(dt);
     updateEnemy(dt, now);
@@ -2384,10 +2422,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     updateStars(dt);
 
-    // Screen shake — decays over shakeTimer seconds
+    // Screen shake — camera only, not the jet
     if (shakeTimer > 0) {
       shakeTimer -= dt;
-      const mag = Math.min(shakeTimer, 0.3) * 0.8;
+      const mag = Math.min(shakeTimer, 0.3) * 0.75;
       camera.position.x = (Math.random()-0.5) * mag;
       camera.position.y = 3 + (Math.random()-0.5) * mag;
     } else {
@@ -2900,6 +2938,7 @@ document.addEventListener('DOMContentLoaded', () => {
       spawnEnemy(dir);
       setTimeout(() => { if (enemyState === 'approaching') { enemyState = 'dogfight'; enemyAge = 0; } }, 800);
     }
+    jetMode = 'dogfight'; jetModeAge = 0;
     // Initial MG burst on entry — no missiles yet
     for (let i = 0; i < 3; i++) {
       setTimeout(() => fireMachineGun(), i * 180);
@@ -2951,20 +2990,26 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!enemyJet) return;
             // Flash enemy orange to show hit
             enemyJet.traverse(child => {
-              if (child.material) {
+              if (child.material && child.material.color) {
                 const orig = child.material.color.getHex();
                 child.material.color.setHex(0xffffff);
-                setTimeout(() => { if (child.material) child.material.color.setHex(orig); }, 180);
+                setTimeout(() => { if (child.material) child.material.color.setHex(orig); }, 200);
               }
             });
-            // Spawn small smoke trail from wing
-            const sGeo = new THREE.BufferGeometry().setFromPoints([
-              new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,6)
-            ]);
-            const sMat = new THREE.LineBasicMaterial({ color: 0xaaaaaa, transparent: true, opacity: 0.55 });
-            const smoke = new THREE.Line(sGeo, sMat);
-            if (enemyJet) enemyJet.add(smoke); // attached so it moves with jet
-            smoke.position.set(5, 0, 0); // out on wing
+            // Smoke puff points attached to enemy wing
+            const pCount = 10;
+            const pPos = new Float32Array(pCount * 3);
+            for (let pi = 0; pi < pCount; pi++) {
+              pPos[pi*3]   = (Math.random()-0.5)*0.5;
+              pPos[pi*3+1] = (Math.random()-0.5)*0.5;
+              pPos[pi*3+2] = pi * 0.7;
+            }
+            const sGeo = new THREE.BufferGeometry();
+            sGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+            const sMat = new THREE.PointsMaterial({ color: 0xcccccc, size: 0.6, transparent: true, opacity: 0.65, depthWrite: false });
+            const smoke = new THREE.Points(sGeo, sMat);
+            if (enemyJet) enemyJet.add(smoke);
+            smoke.position.set(4.5, -0.1, 0); // on wing
           }, 800);
         }
       }
