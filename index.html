@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VECTOR TRADER // ELITE</title>
+<script src="https://code.responsivevoice.org/responsivevoice.js?key=4YPYTi6v"></script>
 <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -1382,6 +1383,110 @@ body::after {
 </div>
 
 <script>
+// ═══════════════════════════════════════════════════════════
+//  RADIO VOICE SYSTEM — global scope so console can call it
+// ═══════════════════════════════════════════════════════════
+const synth = window.speechSynthesis || null;
+let _radioVoice = null;
+let _voicesReady = false;
+
+const PREFERRED_VOICES = [
+  // Chrome / Edge desktop (best quality)
+  'Google UK English Male',
+  'Microsoft Guy Online (Natural) - English (United States)',
+  'Microsoft Ryan Online (Natural) - English (United Kingdom)',
+  'Microsoft Eric Online (Natural) - English (United States)',
+  'Microsoft Davis Online (Natural) - English (United States)',
+  'Microsoft Roger Online (Natural) - English (United States)',
+  // macOS / Safari
+  'Daniel',
+  'Fred',
+  'Alex',
+  'Tom',
+  // Windows SAPI fallbacks
+  'Microsoft David Desktop - English (United States)',
+  'Microsoft Mark Desktop - English (United States)',
+  'David Desktop',
+  'Mark Desktop',
+  // Generic deep-ish male fallbacks
+  'Matthew',
+  'James',
+  'Guy',
+];
+
+function _pickVoice() {
+  if (!synth) return null;
+  const voices = synth.getVoices();
+  if (!voices.length) return null;
+  for (const name of PREFERRED_VOICES) {
+    const v = voices.find(v => v.name === name);
+    if (v) { console.log(`[RADIO] Voice selected: ${v.name} (${v.lang})`); return v; }
+  }
+  // Any English male
+  const engMale = voices.find(v => v.lang.startsWith('en') && /male|man|guy|david|mark|james|guy|ryan|eric|roger|fred|alex/i.test(v.name));
+  if (engMale) { console.log(`[RADIO] Fallback voice: ${engMale.name}`); return engMale; }
+  // Any English
+  const eng = voices.find(v => v.lang.startsWith('en'));
+  if (eng) { console.log(`[RADIO] English voice: ${eng.name}`); return eng; }
+  console.log(`[RADIO] Using default: ${voices[0].name}`);
+  return voices[0];
+}
+
+function _ensureVoice() {
+  if (!_radioVoice) _radioVoice = _pickVoice();
+  return _radioVoice;
+}
+
+if (synth) {
+  // Chrome needs this event to list voices
+  synth.onvoiceschanged = () => {
+    _voicesReady = true;
+    _radioVoice = _pickVoice();
+    const all = synth.getVoices();
+    console.log('[RADIO] All voices:', all.map(v => `${v.name} (${v.lang})${v.default?' [DEFAULT]':''}`).join('\n  '));
+  };
+  // Firefox / Safari may already have them
+  if (synth.getVoices().length > 0) {
+    _voicesReady = true;
+    _radioVoice = _pickVoice();
+  }
+}
+
+// ── Main announce function — call from anywhere ──
+function radioAnnounce(text, pitch = 0.60, rate = 0.86) {
+  if (typeof responsiveVoice !== 'undefined' && responsiveVoice.voiceSupport()) {
+    responsiveVoice.speak(text, "US English Male", {
+      pitch: pitch,          // 0.5–1.0; lower = deeper/gravelly
+      rate: rate,            // 0.5–2.0; lower = slower/more deliberate
+      volume: 0.95,
+      onstart: function() {
+        console.log("[RADIO START ResponsiveVoice] " + text);
+      },
+      onend: function() {
+        console.log("[RADIO END ResponsiveVoice] " + text);
+      }
+    });
+    console.log("[RADIO] Using ResponsiveVoice - US English Male");
+  } else {
+    // Fallback to native browser TTS if ResponsiveVoice fails to load
+    console.warn("[RADIO] ResponsiveVoice not ready — using native fallback");
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.pitch = pitch;
+    utterance.rate = rate;
+    utterance.volume = 0.88;
+    // Optional: try to pick a decent native voice if available
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) {
+      utterance.voice = voices.find(v => v.name.includes('Michael') || v.name.includes('Robert') || v.name.includes('Rob')) || voices[0];
+    }
+    window.speechSynthesis.speak(utterance);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+
 document.addEventListener('DOMContentLoaded', () => {
 
   const CANDLE_SEC = 10;
@@ -1690,14 +1795,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (enemyJet) { scene.remove(enemyJet); enemyJet = null; }
     enemyDir = dir;
     enemyJet = buildEnemyJet(dir === 'LONG');
-    // Start far ahead and slightly above, approaching us
     enemyJet.position.set(
       (Math.random() - 0.5) * 6,
       2 + Math.random() * 2,
       -60
     );
-    enemyJet.rotation.y = Math.PI; // face toward camera
+    enemyJet.rotation.y = Math.PI;
     scene.add(enemyJet);
+    radioAnnounce('Bandit on scope. Locking radar.', 0.65, 0.88);
     enemyState = 'approaching';
     enemyAge = 0;
   }
@@ -1711,6 +1816,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function triggerEnemyDeath() {
     if (!enemyJet || enemyState === 'dying') return;
     enemyState = 'dying';
+    radioAnnounce('Splash one. Target destroyed.', 0.62, 0.88);
     enemyAge = 0;
     // Spawn explosion particles at enemy position
     const pos = enemyJet.position.clone();
@@ -2365,12 +2471,19 @@ document.addEventListener('DOMContentLoaded', () => {
     state.active.push(t);
     document.getElementById('bb-active').textContent=state.active.length;
     addSignalLog(t, 'open');
+
+    // ── Radio call on entry ──
+    if (dir === 'LONG') {
+      radioAnnounce('Fox two. Going long. Weapons hot.', 0.65, 0.88);
+    } else {
+      radioAnnounce('Fox three. Going short. Engaging.', 0.65, 0.88);
+    }
+
     // Transition enemy from approaching → dogfight
     if (enemyJet && enemyState === 'approaching') {
       enemyState = 'dogfight';
       enemyAge = 0;
     } else {
-      // If somehow no enemy, spawn one in dogfight immediately
       spawnEnemy(dir);
       setTimeout(() => { if (enemyState === 'approaching') { enemyState = 'dogfight'; enemyAge = 0; } }, 800);
     }
@@ -2404,6 +2517,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!t.tp1Hit && ((L && p >= t.tp1) || (!L && p <= t.tp1))) {
         t.tp1Hit = true;
         t.stop = t.entry;  // breakeven stop — worst case now 0R
+        radioAnnounce('Target one. Stop moved to breakeven.', 0.68, 0.90);
       }
 
       // TP2 hit — full close
@@ -2424,10 +2538,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 🎯 Win = blow up enemy, Loss = enemy escapes
     if (r > 0) {
-      triggerEnemyDeath();
+      triggerEnemyDeath();  // already announces "Splash one"
       // Victory missile salvo
       for(let i=0;i<4;i++) setTimeout(()=>fireMissile(t.dir), i*120);
+    } else if (r === 0) {
+      radioAnnounce('Trade closed. Breakeven. Returning to scan.', 0.68, 0.90);
+      triggerEnemyEscape();
     } else {
+      radioAnnounce('Stop hit. Bandit escaped. Resetting.', 0.68, 0.88);
       triggerEnemyEscape();
     }
 
@@ -2596,6 +2714,8 @@ document.addEventListener('DOMContentLoaded', () => {
   setInterval(runIndicators, 1000);
   window.addEventListener('resize', onResize);
   setTimeout(onResize, 120);
+  // Startup voice check — waits 2s for voices to load
+  setTimeout(() => radioAnnounce('Cockpit online. Radar active. Awaiting signal.', 0.65, 0.88), 2000);
 });
 </script>
 </body>
