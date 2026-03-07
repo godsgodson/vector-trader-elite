@@ -29,6 +29,12 @@
   --text-mid: #7a7a9a;
   --mono: 'Space Mono', monospace;
   --sans: 'Rajdhani', sans-serif;
+  --glass-heavy: rgba(5,5,12,0.92);
+  --glass-medium: rgba(5,5,12,0.88);
+  --glass-light: rgba(5,5,12,0.75);
+  --t-snap: 0.15s;
+  --t-smooth: 0.3s;
+  --t-slow: 0.6s;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -43,7 +49,17 @@ html, body {
   flex-direction: column;
 }
 
-/* Subtle scanlines */
+/* Cinematic vignette */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.55) 100%);
+  pointer-events: none;
+  z-index: 9998;
+}
+
+/* Animated scanlines */
 body::after {
   content: '';
   position: fixed;
@@ -51,6 +67,11 @@ body::after {
   background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.06) 2px, rgba(0,0,0,0.06) 4px);
   pointer-events: none;
   z-index: 9999;
+  animation: scanline-drift 8s linear infinite;
+}
+@keyframes scanline-drift {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 100px; }
 }
 
 /* ─── TOP BAR ─── */
@@ -74,6 +95,29 @@ body::after {
   padding-right: 20px;
   border-right: 1px solid var(--border-accent);
   white-space: nowrap;
+  animation: logo-breathe 3s ease-in-out infinite;
+}
+@keyframes logo-breathe {
+  0%, 100% { text-shadow: 0 0 20px rgba(232,101,26,0.2); }
+  50% { text-shadow: 0 0 35px rgba(232,101,26,0.5); }
+}
+
+.conn-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--red);
+  margin: 0 10px;
+  flex-shrink: 0;
+  transition: background var(--t-smooth);
+}
+.conn-dot.live {
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 .tb-price-block {
@@ -97,6 +141,14 @@ body::after {
   font-weight: 700;
   color: var(--orange);
   letter-spacing: 1px;
+  transition: text-shadow var(--t-snap);
+}
+#price.flash {
+  animation: price-flash 0.3s ease-out;
+}
+@keyframes price-flash {
+  0% { transform: scale(1.06); text-shadow: 0 0 20px var(--orange); }
+  100% { transform: scale(1); text-shadow: none; }
 }
 
 #delta {
@@ -152,7 +204,7 @@ body::after {
   border-radius: 2px;
   color: var(--text-mid);
   background: transparent;
-  transition: all 0.3s;
+  transition: all var(--t-smooth);
 }
 
 #sig-badge.long {
@@ -302,7 +354,7 @@ body::after {
   height: 50%;
   background: linear-gradient(180deg, #051a33 0%, #083366 100%);
   transform-origin: center bottom;
-  transition: transform 0.2s;
+  transition: transform 0.2s cubic-bezier(0.4,0,0.2,1);
 }
 
 .horizon-ground {
@@ -311,7 +363,7 @@ body::after {
   height: 50%;
   background: linear-gradient(180deg, #1a1200 0%, #0d0800 100%);
   transform-origin: center top;
-  transition: transform 0.2s;
+  transition: transform 0.2s cubic-bezier(0.4,0,0.2,1);
 }
 
 .horizon-line {
@@ -320,7 +372,7 @@ body::after {
   height: 1px;
   background: var(--orange);
   opacity: 0.7;
-  transition: transform 0.2s;
+  transition: transform 0.2s cubic-bezier(0.4,0,0.2,1);
 }
 
 .horizon-reticle {
@@ -364,7 +416,6 @@ body::after {
   gap: 6px;
 }
 
-.flow-bar-wrap { }
 .flow-bar-label {
   font-size: 8px;
   font-family: var(--mono);
@@ -385,7 +436,7 @@ body::after {
 .flow-bar-fill {
   height: 100%;
   border-radius: 3px;
-  transition: width 0.3s;
+  transition: width var(--t-smooth);
 }
 
 .flow-bar-val {
@@ -412,7 +463,7 @@ body::after {
   border: 1px solid var(--border);
   color: var(--text-dim);
   border-radius: 2px;
-  transition: all 0.3s;
+  transition: all var(--t-smooth);
   line-height: 1.4;
 }
 
@@ -449,6 +500,23 @@ body::after {
   z-index: 1;
 }
 
+#viewport3d.hit-flash::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center,
+    rgba(232,48,74,0.18) 0%,
+    rgba(232,48,74,0.06) 50%,
+    transparent 80%
+  );
+  pointer-events: none;
+  z-index: 100;
+  animation: hit-fade 0.2s ease-out forwards;
+}
+@keyframes hit-fade {
+  to { opacity: 0; }
+}
+
 /* ─── HUD OVERLAYS ─── */
 .hud {
   position: absolute;
@@ -464,7 +532,7 @@ body::after {
   top: 50%;
   transform: translateY(-50%);
   width: 66px;
-  background: rgba(5,5,12,0.88);
+  background: var(--glass-medium);
   border: 1px solid var(--border-accent);
   border-radius: 2px;
   overflow: hidden;
@@ -512,7 +580,7 @@ body::after {
   top: 50%;
   transform: translateY(-50%);
   width: 66px;
-  background: rgba(5,5,12,0.88);
+  background: var(--glass-medium);
   border: 1px solid var(--border-accent);
   border-radius: 2px;
   overflow: hidden;
@@ -529,7 +597,7 @@ body::after {
   color: var(--green);
 }
 
-/* Target reticle */
+/* Target reticle — counter-rotating rings */
 .reticle {
   position: absolute;
   top: 50%; left: 50%;
@@ -542,6 +610,7 @@ body::after {
   inset: 0;
   border: 1px solid rgba(232,101,26,0.25);
   border-radius: 50%;
+  animation: reticle-spin 60s linear infinite;
 }
 
 .reticle-ring-inner {
@@ -549,7 +618,9 @@ body::after {
   inset: 20px;
   border: 1px solid rgba(232,101,26,0.15);
   border-radius: 50%;
+  animation: reticle-spin 45s linear infinite reverse;
 }
+@keyframes reticle-spin { to { transform: rotate(360deg); } }
 
 .reticle-h {
   position: absolute;
@@ -565,17 +636,24 @@ body::after {
   background: linear-gradient(180deg, transparent, rgba(232,101,26,0.4) 30%, rgba(232,101,26,0.4) 70%, transparent);
 }
 
-/* Lock animation */
+/* Lock animation — snap in with overshoot */
 .lock-corners {
   position: absolute;
   top: 50%; left: 50%;
   width: 160px; height: 160px;
   transform: translate(-50%, -50%);
   opacity: 0;
-  transition: opacity 0.3s;
+  transition: opacity var(--t-smooth);
 }
 
-.lock-corners.active { opacity: 1; }
+.lock-corners.active {
+  opacity: 1;
+  animation: lock-snap 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes lock-snap {
+  0% { transform: translate(-50%, -50%) scale(1.3); opacity: 0; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
 
 .lc { position: absolute; width: 16px; height: 16px; }
 .lc-tl { top: 0; left: 0; border-top: 2px solid var(--green); border-left: 2px solid var(--green); }
@@ -583,9 +661,8 @@ body::after {
 .lc-bl { bottom: 0; left: 0; border-bottom: 2px solid var(--green); border-left: 2px solid var(--green); }
 .lc-br { bottom: 0; right: 0; border-bottom: 2px solid var(--green); border-right: 2px solid var(--green); }
 
-.lc-tl.short, .lc-tr.short, .lc-bl.short, .lc-br.short {
-  border-color: var(--red) !important;
-}
+/* Parent-context color override instead of !important */
+.lock-corners.short-lock .lc { border-color: var(--red); }
 
 /* Heading bar */
 .heading-bar {
@@ -595,7 +672,7 @@ body::after {
   transform: translateX(-50%);
   width: 220px;
   height: 32px;
-  background: rgba(5,5,12,0.9);
+  background: var(--glass-heavy);
   border: 1px solid var(--border-accent);
   border-radius: 2px;
   overflow: hidden;
@@ -605,7 +682,7 @@ body::after {
   display: flex;
   position: absolute;
   top: 0; height: 100%;
-  transition: transform 0.3s;
+  transition: transform var(--t-smooth) cubic-bezier(0.4,0,0.2,1);
 }
 
 .heading-tick {
@@ -634,7 +711,7 @@ body::after {
   border-top: 8px solid var(--orange);
 }
 
-/* Radar */
+/* Radar — with range rings */
 .radar {
   position: absolute;
   top: 10px;
@@ -642,9 +719,21 @@ body::after {
   width: 130px; height: 130px;
   border: 1px solid var(--border-accent);
   border-radius: 50%;
-  background: rgba(5,5,12,0.92);
+  background: var(--glass-heavy);
   overflow: hidden;
+  box-shadow: 0 0 20px rgba(26,219,108,0.05) inset;
 }
+
+.radar::before, .radar::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(232,101,26,0.08);
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+}
+.radar::before { width: 33%; height: 33%; }
+.radar::after { width: 66%; height: 66%; }
 
 .radar-h {
   position: absolute;
@@ -669,6 +758,7 @@ body::after {
   transform-origin: left center;
   animation: sweep 3s linear infinite;
   opacity: 0.6;
+  will-change: transform;
 }
 
 @keyframes sweep { from{transform:rotate(0)} to{transform:rotate(360deg)} }
@@ -683,6 +773,13 @@ body::after {
   opacity: 0.8;
 }
 
+.radar-blip {
+  position: absolute;
+  border-radius: 50%;
+  animation: blipFade 1.8s ease-out forwards;
+}
+@keyframes blipFade { 0%{opacity:.9;transform:scale(1)} 100%{opacity:0;transform:scale(3)} }
+
 /* G + VSI small panel */
 .telem-bottom {
   position: absolute;
@@ -693,7 +790,7 @@ body::after {
 }
 
 .mini-gauge {
-  background: rgba(5,5,12,0.88);
+  background: var(--glass-medium);
   border: 1px solid var(--border-accent);
   border-radius: 2px;
   padding: 6px 10px;
@@ -723,7 +820,7 @@ body::after {
   left: 90px;
   width: 220px;
   height: 80px;
-  background: rgba(5,5,12,0.9);
+  background: var(--glass-heavy);
   border: 1px solid var(--border-accent);
   border-radius: 2px;
   z-index: 5;
@@ -744,7 +841,7 @@ body::after {
   font-weight: 700;
   letter-spacing: 4px;
   color: var(--text-mid);
-  transition: color 0.3s;
+  transition: color var(--t-smooth);
 }
 
 #sig-confidence {
@@ -767,7 +864,7 @@ body::after {
   height: 100%;
   border-radius: 2px;
   background: var(--orange);
-  transition: width 0.4s, background 0.3s;
+  transition: width 0.4s, background var(--t-smooth);
 }
 
 /* Trade params */
@@ -811,6 +908,13 @@ body::after {
   font-family: var(--mono);
   font-size: 20px;
   font-weight: 700;
+}
+
+.pnl-val.positive {
+  background: linear-gradient(135deg, var(--green), var(--cyan));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .pnl-label {
@@ -869,7 +973,12 @@ body::after {
   font-size: 11px;
   padding: 4px 0;
   border-bottom: 1px solid rgba(28,28,46,0.4);
-  transition: background 0.15s;
+  transition: background var(--t-snap);
+  animation: tape-enter 0.2s ease-out;
+}
+@keyframes tape-enter {
+  from { transform: translateY(-100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
 .tape-item.buy { color: var(--green); }
@@ -879,61 +988,17 @@ body::after {
   background: rgba(232,101,26,0.06);
   border-left: 2px solid var(--orange);
   padding-left: 3px;
+  animation: whale-alert 0.6s ease-out, tape-enter 0.2s ease-out;
+}
+@keyframes whale-alert {
+  0% { background: rgba(232,101,26,0.25); }
+  100% { background: rgba(232,101,26,0.06); }
 }
 
 .tape-item.big {
   background: rgba(155,111,232,0.05);
   border-left: 2px solid var(--purple);
   padding-left: 3px;
-}
-
-/* ─── BOTTOM BAR ─── */
-#bottombar {
-  height: 36px;
-  background: var(--panel);
-  border-top: 1px solid var(--border-accent);
-  display: flex;
-  align-items: stretch;
-  flex-shrink: 0;
-}
-
-.bb-stat {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  border-right: 1px solid var(--border);
-  padding: 0 6px;
-}
-
-.bb-stat:last-child { border-right: none; }
-
-.bb-label {
-  font-size: 7px;
-  font-family: var(--mono);
-  color: var(--text-dim);
-  letter-spacing: 1.5px;
-}
-
-.bb-val {
-  font-family: var(--mono);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-/* Sentiment arc */
-.sentiment-wrap {
-  padding: 0 4px;
-  text-align: center;
-}
-.sent-label {
-  font-family: var(--mono);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 3px;
-  margin-top: -4px;
-  margin-bottom: 4px;
 }
 
 /* Open position box */
@@ -945,7 +1010,17 @@ body::after {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  transition: border-color var(--t-smooth), box-shadow var(--t-smooth);
 }
+.open-pos-box.active-long {
+  border-color: rgba(26,219,108,0.3);
+  box-shadow: 0 0 15px rgba(26,219,108,0.05) inset;
+}
+.open-pos-box.active-short {
+  border-color: rgba(232,48,74,0.3);
+  box-shadow: 0 0 15px rgba(232,48,74,0.05) inset;
+}
+
 .open-pos-row {
   display: flex;
   justify-content: space-between;
@@ -964,27 +1039,29 @@ body::after {
   background: rgba(0,0,0,0.3);
   gap: 4px;
   align-items: center;
+  position: relative;
 }
 .sig-log-item.win { border-color: rgba(26,219,108,0.2); }
 .sig-log-item.loss { border-color: rgba(232,48,74,0.2); }
 .sig-log-item.open { border-color: rgba(232,101,26,0.3); animation: openPulse 2s ease-in-out infinite; }
 @keyframes openPulse { 0%,100%{border-color:rgba(232,101,26,0.3)} 50%{border-color:rgba(232,101,26,0.7)} }
 
-/* Bigger radar blips */
-.radar-blip {
+.sig-log-item.win::before,
+.sig-log-item.loss::before {
+  content: '';
   position: absolute;
-  border-radius: 50%;
-  animation: blipFade 1.8s ease-out forwards;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  border-radius: 2px 0 0 2px;
 }
-@keyframes blipFade { 0%{opacity:.9;transform:scale(1)} 100%{opacity:0;transform:scale(3)} }
+.sig-log-item.win::before { background: var(--green); }
+.sig-log-item.loss::before { background: var(--red); }
 
 /* Enemy target label */
 #enemy-label {
   position: absolute;
   display: none;
   pointer-events: none;
-  transform: translate(-50%, -100%);
-  margin-top: -18px;
   text-align: center;
   z-index: 20;
   font-family: var(--mono);
@@ -997,6 +1074,7 @@ body::after {
   background: rgba(5,5,12,0.82);
   white-space: nowrap;
   text-shadow: 0 0 8px currentColor;
+  will-change: transform;
 }
 #enemy-label::after {
   content: '';
@@ -1008,13 +1086,198 @@ body::after {
   border-right: 5px solid transparent;
   border-top: 6px solid currentColor;
 }
+
+/* Sentiment arc */
+.sentiment-wrap {
+  padding: 0 4px;
+  text-align: center;
+}
+.sent-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  margin-top: -4px;
+  margin-bottom: 4px;
+}
+
+/* ─── BOTTOM BAR ─── */
+#bottombar {
+  height: 36px;
+  background: linear-gradient(180deg,
+    rgba(232,101,26,0.08) 0%,
+    var(--panel) 3px,
+    var(--panel) 100%
+  );
+  border-top: none;
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+}
+
+.bb-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid var(--border);
+  padding: 0 6px;
+}
+.bb-stat:nth-child(even) { background: rgba(255,255,255,0.01); }
+.bb-stat:last-child { border-right: none; }
+
+.bb-label {
+  font-size: 7px;
+  font-family: var(--mono);
+  color: var(--text-dim);
+  letter-spacing: 1.5px;
+}
+
+.bb-val {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ─── KILL MARKER HUD ─── */
+.kill-marker {
+  position: absolute;
+  top: 20%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--mono);
+  font-size: 14px;
+  letter-spacing: 4px;
+  color: var(--green);
+  text-shadow: 0 0 20px var(--green);
+  animation: kill-flash 2s ease-out forwards;
+  z-index: 50;
+  pointer-events: none;
+}
+@keyframes kill-flash {
+  0% { opacity: 0; transform: translateX(-50%) scale(1.5); }
+  15% { opacity: 1; transform: translateX(-50%) scale(1); }
+  70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ─── ENTRY HUD FLASH ─── */
+.entry-hud-flash {
+  position: absolute;
+  top: 12%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-align: center;
+  padding: 10px 20px;
+  border: 1px solid rgba(232,101,26,0.4);
+  border-radius: 2px;
+  background: rgba(5,5,12,0.85);
+  z-index: 50;
+  pointer-events: none;
+  animation: entry-flash 3s ease-out forwards;
+  line-height: 1.8;
+}
+@keyframes entry-flash {
+  0% { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  10% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  75% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ─── THREAT TYPE FLASH ─── */
+.threat-flash {
+  position: absolute;
+  top: 15%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: var(--red);
+  z-index: 50;
+  pointer-events: none;
+  animation: threat-anim 2s ease-out forwards;
+}
+@keyframes threat-anim {
+  0% { opacity: 0; }
+  15% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ─── BOOT OVERLAY ─── */
+#boot-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.8s ease;
+}
+#boot-overlay.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.boot-terminal {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--orange);
+  line-height: 2.2;
+}
+
+.boot-line {
+  opacity: 0;
+  animation: boot-line-in 0.3s ease forwards;
+}
+.boot-line:nth-child(1) { animation-delay: 0.2s; }
+.boot-line:nth-child(2) { animation-delay: 0.6s; }
+.boot-line:nth-child(3) { animation-delay: 1.0s; }
+.boot-line:nth-child(4) { animation-delay: 1.4s; }
+.boot-line:nth-child(5) { animation-delay: 1.8s; }
+.boot-line:nth-child(6) { animation-delay: 2.3s; }
+.boot-line.ok { color: var(--green); }
+.boot-line:last-child { animation-delay: 2.8s; }
+
+@keyframes boot-line-in {
+  0% { opacity: 0; transform: translateX(-8px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+.boot-cursor {
+  animation: blink-cursor 0.6s step-end infinite;
+}
+@keyframes blink-cursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
 </style>
 </head>
 <body>
 
+<!-- BOOT OVERLAY -->
+<div id="boot-overlay">
+  <div class="boot-terminal">
+    <div class="boot-line">VECTOR//TRADER v4.2.1</div>
+    <div class="boot-line">INITIALIZING RADAR SYSTEMS...</div>
+    <div class="boot-line">CALIBRATING SIGNAL ENGINE...</div>
+    <div class="boot-line">CONNECTING TO MARKET FEED...</div>
+    <div class="boot-line">LOADING WEAPONS SYSTEMS...</div>
+    <div class="boot-line ok">ALL SYSTEMS NOMINAL</div>
+    <div class="boot-line ok">▶ ENGAGING <span class="boot-cursor">█</span></div>
+  </div>
+</div>
+
 <!-- TOP BAR -->
 <div id="topbar">
   <div class="tb-logo">VECTOR//TRADER</div>
+  <div class="conn-dot" id="conn-dot"></div>
   <div class="tb-price-block">
     <div>
       <div class="tb-pair">BTC/USD</div>
@@ -1065,6 +1328,11 @@ body::after {
       <div class="rsi-gauge-wrap">
         <svg class="rsi-gauge-svg" viewBox="0 0 60 60">
           <circle class="rsi-arc-bg" cx="30" cy="30" r="24" stroke-dasharray="150.8" stroke-dashoffset="0" transform="rotate(-90 30 30)"/>
+          <!-- Zone markers at 30 and 70 -->
+          <circle cx="30" cy="30" r="24" fill="none" stroke="var(--green)" stroke-width="1"
+            stroke-dasharray="3 147.8" stroke-dashoffset="-44.8" transform="rotate(-90 30 30)" opacity="0.3"/>
+          <circle cx="30" cy="30" r="24" fill="none" stroke="var(--red)" stroke-width="1"
+            stroke-dasharray="3 147.8" stroke-dashoffset="-105.1" transform="rotate(-90 30 30)" opacity="0.3"/>
           <circle class="rsi-arc" id="rsi-arc" cx="30" cy="30" r="24" stroke="var(--orange)"
             stroke-dasharray="150.8" stroke-dashoffset="75.4" transform="rotate(-90 30 30)"/>
         </svg>
@@ -1116,7 +1384,7 @@ body::after {
         <div class="warn-light" id="w-bb">BAND</div>
         <div class="warn-light" id="w-vwap">VWAP</div>
         <div class="warn-light" id="w-ob">OB</div>
-        <div class="warn-light" id="w-atr">ATR</div>
+        <div class="warn-light" id="w-macd">MACD</div>
         <div class="warn-light" id="w-trend">TREND</div>
       </div>
 
@@ -1203,10 +1471,10 @@ body::after {
 
         <!-- Lock corners -->
         <div class="lock-corners" id="lock-corners">
-          <div class="lc lc-tl" id="lc1"></div>
-          <div class="lc lc-tr" id="lc2"></div>
-          <div class="lc lc-bl" id="lc3"></div>
-          <div class="lc lc-br" id="lc4"></div>
+          <div class="lc lc-tl"></div>
+          <div class="lc lc-tr"></div>
+          <div class="lc lc-bl"></div>
+          <div class="lc lc-br"></div>
         </div>
 
         <!-- G + VSI -->
@@ -1277,9 +1545,13 @@ body::after {
           <!-- Needle -->
           <line id="sent-needle" x1="60" y1="60" x2="60" y2="18" stroke="#e8651a" stroke-width="2" stroke-linecap="round"/>
           <circle cx="60" cy="60" r="4" fill="#e8651a"/>
-          <text x="10" y="74" fill="#4a4a6a" font-size="7" font-family="Space Mono">FEAR</text>
-          <text x="84" y="74" fill="#4a4a6a" font-size="7" font-family="Space Mono">GREED</text>
-          <text id="sent-score" x="60" y="50" fill="#e8651a" font-size="11" font-family="Space Mono" font-weight="700" text-anchor="middle">50</text>
+          <!-- Pulsing dot at needle tip -->
+          <circle id="sent-dot" cx="60" cy="18" r="3" fill="#e8651a">
+            <animate attributeName="opacity" values="1;0.4;1" dur="2s" repeatCount="indefinite"/>
+          </circle>
+          <text x="10" y="74" fill="#4a4a6a" font-size="7" font-family="Space Mono, monospace">FEAR</text>
+          <text x="84" y="74" fill="#4a4a6a" font-size="7" font-family="Space Mono, monospace">GREED</text>
+          <text id="sent-score" x="60" y="50" fill="#e8651a" font-size="11" font-family="Space Mono, monospace" font-weight="700" text-anchor="middle">50</text>
         </svg>
         <div class="sent-label" id="sent-label" style="color:var(--orange)">NEUTRAL</div>
       </div>
@@ -1371,7 +1643,7 @@ body::after {
       <div class="tape-head-row">
         <span>S</span><span>PRICE</span><span>SIZE</span><span>VAL</span>
       </div>
-      <div id="tape" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:0;"></div>
+      <div id="tape" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:0;min-height:0;"></div>
 
     </div>
   </div>
@@ -1423,9 +1695,120 @@ body::after {
 </div>
 
 <script>
+
 // ═══════════════════════════════════════════════════════════
-//  RADIO VOICE SYSTEM — global scope so console can call it
+//  THREE.JS DISPOSAL UTILITY — prevents GPU memory leaks
 // ═══════════════════════════════════════════════════════════
+function disposeObject(obj) {
+  if (!obj) return;
+  if (obj.children) {
+    for (let i = obj.children.length - 1; i >= 0; i--) {
+      disposeObject(obj.children[i]);
+    }
+  }
+  if (obj.geometry) obj.geometry.dispose();
+  if (obj.material) {
+    if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+    else obj.material.dispose();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SYNTHESIZED SOUND EFFECTS — zero file dependencies
+// ═══════════════════════════════════════════════════════════
+let _audioCtx = null;
+function getAudioCtx() {
+  if (!_audioCtx) {
+    _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  return _audioCtx;
+}
+
+function synthMissileSound() {
+  try {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.setValueAtTime(900, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(150, ctx.currentTime + 0.6);
+    gain.gain.setValueAtTime(0.18, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+    osc.start(); osc.stop(ctx.currentTime + 0.6);
+  } catch(e) {}
+}
+
+function synthExplosionSound() {
+  try {
+    const ctx = getAudioCtx();
+    const buf = ctx.createBuffer(1, ctx.sampleRate * 0.5, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.12));
+    const src = ctx.createBufferSource();
+    const gain = ctx.createGain();
+    src.buffer = buf;
+    src.connect(gain); gain.connect(ctx.destination);
+    gain.gain.setValueAtTime(0.35, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+    src.start();
+  } catch(e) {}
+}
+
+function synthGunSound() {
+  try {
+    const ctx = getAudioCtx();
+    const buf = ctx.createBuffer(1, ctx.sampleRate * 0.08, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.015));
+    const src = ctx.createBufferSource();
+    const gain = ctx.createGain();
+    src.buffer = buf;
+    src.connect(gain); gain.connect(ctx.destination);
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+    src.start();
+  } catch(e) {}
+}
+
+function synthLockTone(beepCount) {
+  try {
+    const ctx = getAudioCtx();
+    const baseFreq = 800;
+    for (let i = 0; i < beepCount; i++) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = baseFreq + i * 60;
+      osc.type = 'square';
+      const t = ctx.currentTime + i * 0.1;
+      gain.gain.setValueAtTime(0.06, t);
+      gain.gain.setValueAtTime(0, t + 0.06);
+      osc.start(t); osc.stop(t + 0.06);
+    }
+  } catch(e) {}
+}
+
+function synthWarningAlarm() {
+  try {
+    const ctx = getAudioCtx();
+    for (let i = 0; i < 3; i++) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = 440;
+      osc.type = 'square';
+      const t = ctx.currentTime + i * 0.25;
+      gain.gain.setValueAtTime(0.10, t);
+      gain.gain.setValueAtTime(0, t + 0.12);
+      osc.start(t); osc.stop(t + 0.12);
+    }
+  } catch(e) {}
+}
+
+// ═══════════════════════════════════════════════════════════
+//  RADIO VOICE SYSTEM
+// ═══════════════════════════════════════════════════════════
+const USE_RV = typeof responsiveVoice !== 'undefined' && typeof responsiveVoice.voiceSupport === 'function' && responsiveVoice.voiceSupport();
 const synth = window.speechSynthesis || null;
 let _radioVoice = null;
 let _voicesReady = false;
@@ -1437,17 +1820,10 @@ const PREFERRED_VOICES = [
   'Microsoft Eric Online (Natural) - English (United States)',
   'Microsoft Davis Online (Natural) - English (United States)',
   'Microsoft Roger Online (Natural) - English (United States)',
-  'Daniel',
-  'Fred',
-  'Alex',
-  'Tom',
+  'Daniel', 'Fred', 'Alex', 'Tom',
   'Microsoft David Desktop - English (United States)',
   'Microsoft Mark Desktop - English (United States)',
-  'David Desktop',
-  'Mark Desktop',
-  'Matthew',
-  'James',
-  'Guy',
+  'David Desktop', 'Mark Desktop', 'Matthew', 'James', 'Guy',
 ];
 
 function _pickVoice() {
@@ -1456,12 +1832,12 @@ function _pickVoice() {
   if (!voices.length) return null;
   for (const name of PREFERRED_VOICES) {
     const v = voices.find(v => v.name === name);
-    if (v) { console.log(`[RADIO] Voice selected: ${v.name} (${v.lang})`); return v; }
+    if (v) return v;
   }
   const engMale = voices.find(v => v.lang.startsWith('en') && /male|man|guy|david|mark|james|ryan|eric|roger|fred|alex/i.test(v.name));
-  if (engMale) { console.log(`[RADIO] Fallback voice: ${engMale.name}`); return engMale; }
+  if (engMale) return engMale;
   const eng = voices.find(v => v.lang.startsWith('en'));
-  if (eng) { console.log(`[RADIO] English voice: ${eng.name}`); return eng; }
+  if (eng) return eng;
   return voices[0];
 }
 
@@ -1474,8 +1850,6 @@ if (synth) {
   synth.onvoiceschanged = () => {
     _voicesReady = true;
     _radioVoice = _pickVoice();
-    const all = synth.getVoices();
-    console.log('[RADIO] All voices:', all.map(v => `${v.name} (${v.lang})${v.default?' [DEFAULT]':''}`).join('\n  '));
   };
   if (synth.getVoices().length > 0) {
     _voicesReady = true;
@@ -1483,54 +1857,49 @@ if (synth) {
   }
 }
 
-// ── Radio queue — calls play sequentially, never cutting each other off ──
-// ── Priority radio system ──
-// P0 = combat critical (kills, entry, tp hits) — cancels everything
-// P1 = trade info (drawdown warnings)          — cancels P2
-// P2 = situational (acquiring, lost, bogey)    — dropped if anything queued
-// Each priority level has its own cooldown so chatter never floods
+// ── Priority radio queue ──
+// P0 = combat critical — cancels everything
+// P1 = trade info — cancels P2
+// P2 = situational — dropped if anything queued
 const _radioPlaying = { active: false };
-const _radioQueue   = [];   // [{text,pitch,rate,priority}]
-const _radioCooldowns = {}; // key→timestamp
-let _lastRadioTime = Date.now();  // track last time anything was spoken
-
-// Intercept _playNext to update last radio time
-const _origPlayNext_ref = { fn: null };
+const _radioQueue   = [];
+const _radioCooldowns = {};
+let _lastRadioTime = Date.now();
+let _speechStartTime = 0;
 
 function _cancelSpeech() {
-  if (typeof responsiveVoice !== 'undefined') responsiveVoice.cancel();
-  else if (window.speechSynthesis) window.speechSynthesis.cancel();
+  if (USE_RV) responsiveVoice.cancel();
+  else if (synth) synth.cancel();
 }
 
 function _playNext() {
   if (_radioPlaying.active || _radioQueue.length === 0) return;
   _radioPlaying.active = true;
-  _lastRadioTime = Date.now();   // reset silence timer whenever something plays
+  _lastRadioTime = Date.now();
+  _speechStartTime = Date.now();
   const { text, pitch, rate } = _radioQueue.shift();
   const done = () => { _radioPlaying.active = false; setTimeout(_playNext, 120); };
-  if (typeof responsiveVoice !== 'undefined' && responsiveVoice.voiceSupport()) {
+  if (USE_RV) {
     responsiveVoice.speak(text, 'US English Male', { pitch, rate, volume: 0.95, onend: done, onerror: done });
-  } else if (window.speechSynthesis) {
+  } else if (synth) {
     const utt = new SpeechSynthesisUtterance(text);
     utt.pitch = pitch; utt.rate = rate; utt.volume = 0.88;
     const v = _ensureVoice(); if (v) utt.voice = v;
     utt.onend = utt.onerror = done;
-    window.speechSynthesis.speak(utt);
+    synth.speak(utt);
   } else { done(); }
 }
 
-// P2 — situational chatter. Dropped silently if queue has anything, hard cooldown per key.
 function radioOnce(key, text, cooldownMs, pitch=0.65, rate=0.90) {
   const now = Date.now();
   if (_radioCooldowns[key] && now - _radioCooldowns[key] < cooldownMs) return;
-  if (_radioQueue.length > 0) return;   // something more important pending — skip
-  if (_radioPlaying.active) return;     // mid-speech — skip
+  if (_radioQueue.length > 0) return;
+  if (_radioPlaying.active) return;
   _radioCooldowns[key] = now;
   _radioQueue.push({ text, pitch, rate, priority: 2 });
   _playNext();
 }
 
-// P1 — trade info. Cancels any queued P2, won't interrupt active P0/P1.
 function radioAnnounce(text, pitch=0.60, rate=0.90) {
   _lastRadioTime = Date.now();
   for (let i = _radioQueue.length-1; i >= 0; i--) {
@@ -1540,7 +1909,6 @@ function radioAnnounce(text, pitch=0.60, rate=0.90) {
   _playNext();
 }
 
-// P0 — critical. Cancels everything including current speech.
 function radioUrgent(text, pitch=0.62, rate=0.90) {
   _lastRadioTime = Date.now();
   _radioQueue.length = 0;
@@ -1550,53 +1918,85 @@ function radioUrgent(text, pitch=0.62, rate=0.90) {
   _playNext();
 }
 
-// ─────────────────────────────────────────────────────────────
-
-// ── Pilot idle chatter — fires if radio silent for >50s while active ──
+// ── Pilot idle chatter ──
 const PILOT_QUIPS = [
+  "Welcome to the squadron. Don't touch the eject handle.",
   "How's the weather out there?",
+  "My co-pilot is a rubber duck. He's currently more profitable than I am.",
   "Don't forget to like and follow.",
   "Join the squad!",
   "Thanks for watching Vector Trader.",
   "Bitcoin is the future.",
+  "Requesting permission to moon. Over.",
   "How high can we run it up today?",
-  "What's it gonna be buddy, long or short?",
+  "If we hit the target, drinks are on the viewers. If we crash, I was never here.",
+  "What's it gonna be, long or short? Write in chat.",
   "Tell your mom I said hi.",
   "What does this button do?",
+  "I've got a lock on the Subscribe button. Permission to engage?",
   "Who's the man? I'm the man!",
-  "My sensors are telling me you haven't clicked the like button.",
+  "The tower told me to land, but I told them I only go up.",
+  "Requesting permission to go full throttle.",
+  "My sensors are telling me you haven't clicked like.",
+  "Keep your tray tables up and your hands off the sell button.",
+  "I need someone to hold my bags while I execute this barrel roll.",
 ];
-let _quipIndex = 0;
-let _lastQuipTime = 0;
+let _quipIndex      = 0;
+let _quipLastFired  = 0;
 
-function checkPilotChatter(now) {
-  // Fire a quip if we've had >50s of silence during active action (max 60s gap)
-  const inAction = typeof state !== 'undefined' &&
-    (state.active.length > 0 || (typeof enemyState !== 'undefined' &&
-      (enemyState === 'dogfight' || enemyState === 'approaching')));
-  if (!inAction) { _lastRadioTime = now; return; }  // reset clock when idle so silence restarts fresh
+const _CHATTER_FIRST  = 18000;
+const _CHATTER_REPEAT = 50000;
 
-  const silenceMs = now - _lastRadioTime;
-  if (silenceMs < 50000) return;           // under 50s — no quip needed
-  if (now - _lastQuipTime < 52000) return; // cooldown between quips
-  if (_radioPlaying.active) return;        // already talking
-  if (_radioQueue.length > 0) return;      // something queued
+// Context-aware quip selection
+function getContextualQuip(state) {
+  if (state.pnl > 500) return "We're printing money up here. Don't tell the tower.";
+  if (state.pnl < -300) return "Mayday mayday, portfolio is on fire.";
+  if (state.wins >= 5 && state.losses === 0) return "Flawless record. I'm basically a machine at this point.";
+  if (Math.abs(state.vel) > 0.003) return "Velocity is off the charts. Hold on to something.";
+  // Random from pool — never repeat back-to-back
+  let idx;
+  do { idx = Math.floor(Math.random() * PILOT_QUIPS.length); } while (idx === _quipIndex && PILOT_QUIPS.length > 1);
+  _quipIndex = idx;
+  return PILOT_QUIPS[idx];
+}
 
-  _lastQuipTime = now;
-  _lastRadioTime = now;
-  const quip = PILOT_QUIPS[_quipIndex % PILOT_QUIPS.length];
-  _quipIndex++;
+function checkPilotChatter(now, state) {
+  if (now - _quipLastFired < ((_quipLastFired === 0) ? _CHATTER_FIRST : _CHATTER_REPEAT)) return;
+
+  // Unstick radio engine — Chrome bug where speaking stays true
+  if (_radioPlaying.active) {
+    const stuckTimeout = Date.now() - _speechStartTime > 15000;
+    if (stuckTimeout) {
+      _cancelSpeech();
+      _radioPlaying.active = false;
+    }
+    const ssRunning = synth && synth.speaking;
+    const rvRunning = USE_RV && typeof responsiveVoice.isPlaying === 'function' && responsiveVoice.isPlaying();
+    if (!stuckTimeout && (ssRunning || rvRunning)) return;
+    if (!stuckTimeout) _radioPlaying.active = false;
+  }
+
+  if (_radioQueue.some(q => q.priority < 2)) return;
+
+  for (let i = _radioQueue.length - 1; i >= 0; i--) {
+    if (_radioQueue[i].priority >= 2) _radioQueue.splice(i, 1);
+  }
+  _quipLastFired = now;
+  const quip = getContextualQuip(state);
   _radioQueue.push({ text: quip, pitch: 0.67, rate: 0.91, priority: 2 });
   _playNext();
 }
 
+// ═══════════════════════════════════════════════════════════
+//  MAIN APPLICATION
+// ═══════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
 
-  const CANDLE_SEC = 10;
+  const CANDLE_SEC = 1;
 
   const state = {
     price: 0, prevPrice: 0, firstPrice: 0,
-    hi: 0, lo: Infinity,
+    hi: 0, lo: 0,
     buyVol: 0, sellVol: 0, cvd: 0,
     trades: [], ticks: [],
     ob: { bid: 0, ask: 0, spread: 0 },
@@ -1607,47 +2007,98 @@ document.addEventListener('DOMContentLoaded', () => {
     wins: 0, losses: 0, pnl: 0,
     vel: 0, acc: 0, prevVel: 0,
     pitch: 0, roll: 0,
-    gridColor: { r: 26, g: 219, b: 108 },   // live interpolated grid color
     lastSignalDir: null,
-    cooldownUntil: 0
+    cooldownUntil: 0,
+    _initialized: false,
+    _lastTradeTime: 0,
+    _lastTradeClean: 0,
+    _lastChartUpdate: 0,
+    _lastInstrumentUpdate: 0,
+    _lastGridColorUpdate: 0,
+    _lastGridBP: -1,
+    _indicatorsDirty: false,
+    totalKills: 0
   };
+
+  // ─── BOOT SEQUENCE ───
+  setTimeout(() => {
+    const boot = document.getElementById('boot-overlay');
+    if (boot) {
+      boot.classList.add('fade-out');
+      setTimeout(() => boot.remove(), 800);
+    }
+  }, 3500);
 
   // ─── MINI CHART ───
   const chartWrap = document.getElementById('chart-wrap');
   const chart = LightweightCharts.createChart(chartWrap, {
     layout: { background: { color: 'transparent' }, textColor: 'transparent' },
     grid: { vertLines: { color: '#1c1c2e' }, horzLines: { color: '#1c1c2e' } },
-    timeScale: { visible: false },
+    timeScale: { visible: false, rightOffset: 2, barSpacing: 4, fixLeftEdge: false },
     rightPriceScale: { visible: false },
-    leftPriceScale: { visible: false },
+    leftPriceScale:  { visible: false },
     crosshair: { mode: 0 },
     handleScroll: false, handleScale: false
   });
-  const priceSeries = chart.addLineSeries({ color: '#e8651a', lineWidth: 1.5 });
+  const priceSeries = chart.addCandlestickSeries({
+    upColor: '#1adb6c', downColor: '#e8304a',
+    borderUpColor: '#1adb6c', borderDownColor: '#e8304a',
+    wickUpColor: '#1adb6c', wickDownColor: '#e8304a',
+  });
+  const lineOverlay = chart.addLineSeries({ color: 'rgba(232,101,26,0.55)', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
 
   // ─── THREE.JS ───
   const vp = document.getElementById('viewport3d');
   let scene, camera, renderer, jet, groundLines = [], groundMats = [];
-  let audioListener = null;
-  let sndMissile = null, sndExplosion = null, sndMachineGun = null;
-  let shakeTimer = 0;          // screen shake countdown
-
-  function playSound(snd, overlap) {
-    if (!snd || !snd.buffer) return;   // not loaded yet
-    if (snd.isPlaying) {
-      if (!overlap) return;            // don't stack if overlap=false
-      snd.stop();                      // restart if overlap=true
-    }
-    snd.play();
-  }
+  let engineLight = null;
+  let shakeTimer = 0;
   let groundOffset = 0;
   let missiles = [];
-  let enemyJet = null;       // the enemy fighter
-  let enemyState = 'none';   // 'none' | 'approaching' | 'dogfight' | 'dying' | 'escaping'
-  let enemyDir = 'LONG';     // which direction triggered it
+  let enemyJet = null;
+  let enemyState = 'none';
+  let enemyDir = 'LONG';
   let enemyAge = 0;
   let explosionParticles = [];
+  let flares = [];
   const GRID_STEP = 8, GRID_COLS = 50, GRID_ROWS = 80;
+
+  // ── Jet behavior state machine ──
+  let jetMode    = 'idle';
+  let jetModeAge = 0;
+  let jetTargetX = 0;
+
+  // ── Enemy state ──
+  let enemyWingDamaged = false;
+  let tracers = [];
+  let mgRounds = [];
+  let mgLastFired = 0;
+  let mgBurstNext = 0;
+  let mgBurstCount = 0;
+  let hostiles = [];
+  let hostileTracers = [];
+  let hostileSpawnCooldown = 0;
+
+  // ── Sound helpers — try file first, fallback to synth ──
+  let sndMissile = null, sndExplosion = null, sndMachineGun = null;
+  let _fileSoundsLoaded = false;
+
+  function playMissileSound() {
+    if (sndMissile && sndMissile.buffer) {
+      if (sndMissile.isPlaying) sndMissile.stop();
+      sndMissile.play();
+    } else { synthMissileSound(); }
+  }
+  function playExplosionSound() {
+    if (sndExplosion && sndExplosion.buffer) {
+      if (sndExplosion.isPlaying) sndExplosion.stop();
+      sndExplosion.play();
+    } else { synthExplosionSound(); }
+  }
+  function playGunSound() {
+    if (sndMachineGun && sndMachineGun.buffer) {
+      if (!sndMachineGun.isPlaying) sndMachineGun.play();
+    } else { synthGunSound(); }
+  }
 
   function initScene() {
     scene = new THREE.Scene();
@@ -1656,19 +2107,18 @@ document.addEventListener('DOMContentLoaded', () => {
     camera.position.set(0, 3, 12);
     camera.lookAt(0, 0.5, -80);
 
-    // ── Positional audio — attach listener to camera ──
-    audioListener = new THREE.AudioListener();
+    // ── Try to load audio files, fall back to synth ──
+    const audioListener = new THREE.AudioListener();
     camera.add(audioListener);
 
     function loadSound(url, loop, volume) {
       const snd = new THREE.Audio(audioListener);
-      // Only attempt load if file is likely available (not file:// with no server)
       const audioLoader = new THREE.AudioLoader();
       audioLoader.load(
         url,
-        buffer => { snd.setBuffer(buffer); snd.setVolume(volume); if (loop) snd.setLoop(true); },
+        buffer => { snd.setBuffer(buffer); snd.setVolume(volume); if (loop) snd.setLoop(true); _fileSoundsLoaded = true; },
         undefined,
-        err => console.warn('[AUDIO] Could not load ' + url + ' — ' + err.message)
+        () => {} // silent fail — synth fallback handles it
       );
       return snd;
     }
@@ -1686,21 +2136,21 @@ document.addEventListener('DOMContentLoaded', () => {
     jet = buildJet();
     scene.add(jet);
 
+    // Engine glow light
+    engineLight = new THREE.PointLight(0xe8651a, 0.3, 15);
+    engineLight.position.set(0, 0.4, 7);
+    jet.add(engineLight);
+
     buildGrid();
     scene.add(buildStars());
     buildGroundPlane();
   }
 
   function buildGroundPlane() {
-    // Flat solid ground under the grid — receives shading from lights
     const geo = new THREE.PlaneGeometry(400, 800, 1, 1);
     const mat = new THREE.MeshPhongMaterial({
-      color:     0x040810,
-      emissive:  0x020408,
-      shininess: 0,
-      transparent: true,
-      opacity: 0.92,
-      depthWrite: true
+      color: 0x040810, emissive: 0x020408, shininess: 0,
+      transparent: true, opacity: 0.92, depthWrite: true
     });
     const plane = new THREE.Mesh(geo, mat);
     plane.rotation.x = -Math.PI / 2;
@@ -1708,11 +2158,8 @@ document.addEventListener('DOMContentLoaded', () => {
     scene.add(plane);
   }
 
-  // ─── DYNAMIC GRID ───
-  // We store individual line materials so we can recolor live
   function buildGrid() {
     const half = Math.floor(GRID_COLS / 2);
-    // Longitudinal lines (run into the distance)
     for (let i = -half; i <= half; i++) {
       const mat = new THREE.LineBasicMaterial({ color: 0x1adb6c, transparent: true, opacity: 0.6 });
       const geo = new THREE.BufferGeometry().setFromPoints([
@@ -1723,7 +2170,6 @@ document.addEventListener('DOMContentLoaded', () => {
       scene.add(line);
       groundMats.push(mat);
     }
-    // Lateral lines (horizontal cross-lines, we'll scroll these)
     for (let r = 0; r < GRID_ROWS; r++) {
       const mat = new THREE.LineBasicMaterial({ color: 0x1adb6c, transparent: true, opacity: 0.6 });
       const z = -r * GRID_STEP;
@@ -1738,16 +2184,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-
-  
-  // Interpolate grid color: green (buy) ↔ red (sell) based on CVD balance
   function updateGridColor() {
     const total = state.buyVol + state.sellVol;
-    const bp = total > 0 ? state.buyVol / total : 0.5; // 0→sell, 1→buy
-    // Green: 26,219,108  Red: 232,48,74
-    const r = Math.round(26  + (232 - 26)  * (1 - bp));
-    const g = Math.round(219 + (48  - 219) * (1 - bp));
-    const b = Math.round(108 + (74  - 108) * (1 - bp));
+    const bp = total > 0 ? Math.round(state.buyVol / total * 100) : 50;
+    if (bp === state._lastGridBP) return;
+    state._lastGridBP = bp;
+    const bpN = bp / 100;
+    const r = Math.round(26  + (232 - 26)  * (1 - bpN));
+    const g = Math.round(219 + (48  - 219) * (1 - bpN));
+    const b = Math.round(108 + (74  - 108) * (1 - bpN));
     const hex = (r << 16) | (g << 8) | b;
     groundMats.forEach(m => m.color.setHex(hex));
   }
@@ -1817,7 +2262,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const count = pos.count;
     for (let i = 0; i < count; i++) {
       pos.array[i*3+2] += starSpeed;
-      // Wrap star back to far distance when it passes the camera
       if (pos.array[i*3+2] > 80) {
         pos.array[i*3+2] = -550 + Math.random() * 100;
         pos.array[i*3]   = (Math.random() - 0.5) * 500;
@@ -1866,8 +2310,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const spreadY = isLong ? 0.05+Math.random()*0.08 : -0.05-Math.random()*0.08;
 
     scene.add(group);
-    playSound(sndMissile, true);   // overlap=true so rapid salvo fires sound each time
-    // Homing if enemy is in dogfight
+    playMissileSound();
     const homing = (enemyJet !== null && (enemyState === 'dogfight' || enemyState === 'approaching'));
     missiles.push({
       group, trail, trailMat,
@@ -1882,6 +2325,7 @@ document.addEventListener('DOMContentLoaded', () => {
       m.age += dt;
       if (m.age > m.maxAge) {
         scene.remove(m.group);
+        disposeObject(m.group);
         return false;
       }
 
@@ -1891,37 +2335,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const toTgt = new THREE.Vector3().subVectors(tgt, m.group.position);
         const dist = toTgt.length();
         if (dist < 5) {
-          // Kill the hostile — trigger its death animation
           m.hostileTarget.killed = true;
-          playSound(sndExplosion, true);
+          playExplosionSound();
           shakeTimer = 0.25;
-          // Spawn small explosion at hostile position
-          const pos = tgt.clone();
-          const exColors = [0xff6600, 0xff3300, 0xffaa00, 0xffffff];
-          for (let i = 0; i < 20; i++) {
-            const eMat = new THREE.LineBasicMaterial({
-              color: exColors[Math.floor(Math.random()*exColors.length)],
-              transparent: true, opacity: 1
-            });
-            const dir3 = new THREE.Vector3(
-              (Math.random()-0.5)*2,(Math.random()-0.5)*2,(Math.random()-0.5)*2
-            ).normalize();
-            const eGeo = new THREE.BufferGeometry().setFromPoints([
-              new THREE.Vector3(0,0,0), dir3.clone().multiplyScalar(1.5 + Math.random()*2)
-            ]);
-            const spark = new THREE.Line(eGeo, eMat);
-            spark.position.copy(pos);
-            scene.add(spark);
-            explosionParticles.push({
-              mesh: spark, mat: eMat,
-              vel: dir3.multiplyScalar(0.6 + Math.random()),
-              age: 0, maxAge: 0.8 + Math.random() * 0.5
-            });
-          }
+          spawnExplosionAt(tgt.clone(), 20);
           scene.remove(m.group);
+          disposeObject(m.group);
+          state.totalKills++;
+          showKillMarker();
+          announceKillStreak();
           return false;
         }
-        // Proportional navigation — steer toward target
         toTgt.normalize().multiplyScalar(dt * 100);
         m.group.position.add(toTgt);
       // Home on main dogfight enemy
@@ -1931,6 +2355,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (dist < 4) {
           triggerEnemyDeath();
           scene.remove(m.group);
+          disposeObject(m.group);
           return false;
         }
         toEnemy.normalize().multiplyScalar(dt * 90);
@@ -1943,90 +2368,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ─── ENEMY JET SYSTEM ───
-
-  function buildEnemyJet(isLong) {
-    const g = new THREE.Group();
-    const col  = isLong ? 0x1adb6c : 0xe8304a;
-    const col2 = isLong ? 0x08ffaa : 0xff2060;
-    const M  = (c, op=1) => new THREE.LineBasicMaterial({ color:c, transparent: op<1, opacity: op });
-    const pts = arr => arr.map(p => new THREE.Vector3(...p));
-    const ln  = (arr, c, op=1) => new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts(arr)), M(c,op));
-
-    g.add(ln([[0,0,7],[.5,.3,4],[.8,.6,1],[.9,.7,-2],[.7,.9,-5],[.3,1.8,-6.5],[0,2.2,-7],[-.3,1.8,-6.5],[-.7,.9,-5],[-.9,.7,-2],[-.8,.6,1],[-.5,.3,4],[0,0,7]], col));
-    g.add(ln([[0,0,7],[.5,-.25,4],[.8,-.35,0],[.7,-.25,-4.5],[0,0,-6.5],[-.7,-.25,-4.5],[-.8,-.35,0],[-.5,-.25,4],[0,0,7]], col));
-    g.add(ln([[.9,.25,0],[6.5,-.6,-2.5],[7,-.6,-4],[1.1,.25,-3.5]], col));
-    g.add(ln([[-.9,.25,0],[-6.5,-.6,-2.5],[-7,-.6,-4],[-1.1,.25,-3.5]], col));
-    for(let i=1;i<4;i++){
-      const x=1+i*1.4, y=.2-i*.2;
-      g.add(ln([[x,y,-i*.6],[x,y,-3-i*.2]], col, 0.5));
-      g.add(ln([[-x,y,-i*.6],[-x,y,-3-i*.2]], col, 0.5));
-    }
-    g.add(ln([[.5,.7,-5],[2.2,.3,-6.5],[2.5,.3,-7],[.6,.8,-6.2]], col));
-    g.add(ln([[-.5,.7,-5],[-2.2,.3,-6.5],[-2.5,.3,-7],[-.6,.8,-6.2]], col));
-    g.add(ln([[0,1,-4.5],[0,2.2,-7]], col));
-    g.add(ln([[0,.5,3.5],[.4,.9,2],[.4,1.1,0],[-.4,1.1,0],[-.4,.9,2],[0,.5,3.5]], col2));
-    g.add(ln([[0,1,1.5],[0,.5,3.5]], col2));
-    for(let i=0;i<3;i++){
-      const r=.38-i*.07, z=-6.4-i*.4, ep=[];
-      for(let j=0;j<=20;j++){
-        const a=j/20*Math.PI*2;
-        ep.push(new THREE.Vector3(Math.cos(a)*r, Math.sin(a)*r+.4, z));
-      }
-      g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(ep),
-        new THREE.LineBasicMaterial({color:col,transparent:true,opacity:0.8-i*.2})));
-    }
-    const ringPts = [];
-    for(let j=0;j<=32;j++){
-      const a=j/32*Math.PI*2;
-      ringPts.push(new THREE.Vector3(Math.cos(a)*2.2, Math.sin(a)*2.2, 0));
-    }
-    g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(ringPts),
-      new THREE.LineBasicMaterial({color:col2,transparent:true,opacity:0.4})));
-    const eContrailMat = new THREE.LineBasicMaterial({ color: col2, transparent: true, opacity: 0.35 });
-    g.add(new THREE.Line(
-      new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0.4,-7), new THREE.Vector3(0,0.4,-22)]),
-      eContrailMat
-    ));
-    return g;
-  }
-
-  function spawnEnemy(dir) {
-    if (enemyJet) { scene.remove(enemyJet); enemyJet = null; }
-    enemyDir = dir;
-    enemyJet = buildEnemyJet(dir === 'LONG');
-    enemyJet.position.set(
-      (Math.random() - 0.5) * 6,
-      2 + Math.random() * 2,
-      -60
-    );
-    enemyJet.rotation.y = Math.PI;
-    scene.add(enemyJet);
-    radioAnnounce('Bandit. Tally one. Radar lock.', 0.65, 0.88);
-    enemyState = 'approaching';
-    enemyAge = 0;
-    jetMode = 'tracking'; jetModeAge = 0;
-  }
-
-  function removeEnemy() {
-    if (enemyJet) { scene.remove(enemyJet); enemyJet = null; }
-    enemyState = 'none';
-    enemyAge = 0;
-    if (jetMode !== 'waggle') { jetMode = 'idle'; jetModeAge = 0; }
-  }
-
-  function triggerEnemyDeath() {
-    if (!enemyJet || enemyState === 'dying') return;
-    enemyState = 'dying';
-    // Kill announced via radioUrgent in checkTrades or closeTrade
-    enemyAge = 0;
-    playSound(sndExplosion, true);
-    shakeTimer = 0.45;
-    jetMode = 'waggle'; jetModeAge = 0;
-    // Spawn explosion particles at enemy position
-    const pos = enemyJet.position.clone();
+  // ── Generic explosion spawner ──
+  function spawnExplosionAt(pos, count) {
     const colors = [0xff6600, 0xff2200, 0xffaa00, 0xffffff, 0xff4400];
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < count; i++) {
       const mat = new THREE.LineBasicMaterial({
         color: colors[Math.floor(Math.random()*colors.length)],
         transparent: true, opacity: 1
@@ -2050,6 +2395,116 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // ── Kill marker HUD ──
+  function showKillMarker() {
+    const hud = document.querySelector('.hud');
+    if (!hud) return;
+    const marker = document.createElement('div');
+    marker.className = 'kill-marker';
+    marker.textContent = '✕ KILL CONFIRMED';
+    hud.appendChild(marker);
+    setTimeout(() => marker.remove(), 2000);
+  }
+
+  // ── Kill streak announcements ──
+  function announceKillStreak() {
+    const k = state.totalKills;
+    if (k === 3) radioUrgent('Triple kill. Ace in the making.', 0.60, 0.88);
+    else if (k === 5) radioUrgent('Five confirmed. Ace status.', 0.58, 0.85);
+    else if (k === 10) radioUrgent('Double ace. They should name a base after us.', 0.58, 0.85);
+  }
+
+  // ── Entry HUD flash ──
+  function showEntryHUD(dir, entry, stop, tp1) {
+    const hud = document.querySelector('.hud');
+    if (!hud) return;
+    const el = document.createElement('div');
+    el.className = 'entry-hud-flash';
+    const col = dir === 'LONG' ? 'var(--green)' : 'var(--red)';
+    el.innerHTML = `<div style="font-size:14px;letter-spacing:4px;margin-bottom:6px;color:${col}">${dir === 'LONG' ? '▲ LONG ENGAGED' : '▼ SHORT ENGAGED'}</div>` +
+      `<div style="color:var(--text)">ENTRY $${entry.toFixed(0)} → TP1 $${tp1.toFixed(0)}</div>` +
+      `<div style="color:var(--text-dim)">RISK $${Math.abs(entry-stop).toFixed(0)}</div>`;
+    hud.appendChild(el);
+    setTimeout(() => el.remove(), 3000);
+  }
+
+  // ─── ENEMY JET SYSTEM ───
+  function buildEnemyJet(isLong) {
+    const g    = new THREE.Group();
+    const col  = isLong ? 0x1adb6c : 0xe8304a;
+    const col2 = isLong ? 0x08ffaa : 0xff2060;
+    const M    = (c, op=1) => new THREE.LineBasicMaterial({ color:c, transparent:op<1, opacity:op });
+    const pts  = arr => arr.map(p => new THREE.Vector3(...p));
+    const ln   = (arr, c, op=1) => new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts(arr)), M(c,op));
+
+    g.add(ln([[0,0,7],[.5,.3,4],[.8,.6,1],[.9,.7,-2],[.7,.9,-5],[.3,1.8,-6.5],[0,2.2,-7],[-.3,1.8,-6.5],[-.7,.9,-5],[-.9,.7,-2],[-.8,.6,1],[-.5,.3,4],[0,0,7]], col));
+    g.add(ln([[0,0,7],[.5,-.25,4],[.8,-.35,0],[.7,-.25,-4.5],[0,0,-6.5],[-.7,-.25,-4.5],[-.8,-.35,0],[-.5,-.25,4],[0,0,7]], col));
+    g.add(ln([[.9,.25,0],[6.5,-.6,-2.5],[7,-.6,-4],[1.1,.25,-3.5]], col));
+    g.add(ln([[-.9,.25,0],[-6.5,-.6,-2.5],[-7,-.6,-4],[-1.1,.25,-3.5]], col));
+    for(let i=1;i<4;i++){
+      const x=1+i*1.4, y=.2-i*.2;
+      g.add(ln([[x,y,-i*.6],[x,y,-3-i*.2]], col, 0.5));
+      g.add(ln([[-x,y,-i*.6],[-x,y,-3-i*.2]], col, 0.5));
+    }
+    g.add(ln([[.5,.7,-5],[2.2,.3,-6.5],[2.5,.3,-7],[.6,.8,-6.2]], col));
+    g.add(ln([[-.5,.7,-5],[-2.2,.3,-6.5],[-2.5,.3,-7],[-.6,.8,-6.2]], col));
+    g.add(ln([[0,1,-4.5],[0,2.2,-7]], col));
+    g.add(ln([[0,.5,3.5],[.4,.9,2],[.4,1.1,0],[-.4,1.1,0],[-.4,.9,2],[0,.5,3.5]], col2));
+    g.add(ln([[0,1,1.5],[0,.5,3.5]], col2));
+    for(let i=0;i<3;i++){
+      const r=.38-i*.07, z=-6.4-i*.4, ep=[];
+      for(let j=0;j<=20;j++){const a=j/20*Math.PI*2; ep.push(new THREE.Vector3(Math.cos(a)*r,Math.sin(a)*r+.4,z));}
+      g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(ep),
+        new THREE.LineBasicMaterial({color:col,transparent:true,opacity:0.8-i*.2})));
+    }
+    const ringPts=[];
+    for(let j=0;j<=32;j++){const a=j/32*Math.PI*2; ringPts.push(new THREE.Vector3(Math.cos(a)*2.2,Math.sin(a)*2.2,0));}
+    g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(ringPts),
+      new THREE.LineBasicMaterial({color:col2,transparent:true,opacity:0.4})));
+    g.add(new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,.4,-7),new THREE.Vector3(0,.4,-22)]),
+      new THREE.LineBasicMaterial({color:col2,transparent:true,opacity:0.35})));
+    return g;
+  }
+
+  function spawnEnemy(dir) {
+    if (enemyJet) { scene.remove(enemyJet); disposeObject(enemyJet); enemyJet = null; }
+    enemyDir = dir;
+    enemyWingDamaged = false;
+    enemyJet = buildEnemyJet(dir === 'LONG');
+    enemyJet.position.set(
+      (Math.random() - 0.5) * 4,
+      2.5 + Math.random() * 1.5,
+      -120
+    );
+    enemyJet.rotation.y = Math.PI;
+    scene.add(enemyJet);
+    radioAnnounce('Bandit. Tally one. Radar lock.', 0.65, 0.88);
+    enemyState = 'approaching';
+    enemyAge = 0;
+    jetMode = 'tracking'; jetModeAge = 0;
+  }
+
+  function removeEnemy() {
+    if (enemyJet) { scene.remove(enemyJet); disposeObject(enemyJet); enemyJet = null; }
+    enemyState = 'none';
+    enemyAge = 0;
+    if (jetMode !== 'waggle') { jetMode = 'idle'; jetModeAge = 0; }
+  }
+
+  function triggerEnemyDeath() {
+    if (!enemyJet || enemyState === 'dying') return;
+    enemyState = 'dying';
+    enemyAge = 0;
+    playExplosionSound();
+    shakeTimer = 0.45;
+    jetMode = 'waggle'; jetModeAge = 0;
+    state.totalKills++;
+    showKillMarker();
+    announceKillStreak();
+    spawnExplosionAt(enemyJet.position.clone(), 40);
+  }
+
   function triggerEnemyEscape() {
     if (!enemyJet) return;
     enemyState = 'escaping';
@@ -2057,36 +2512,227 @@ document.addEventListener('DOMContentLoaded', () => {
     jetMode = 'idle'; jetModeAge = 0;
   }
 
+  // ── Countermeasure flares — integrated into main update loop ──
+  function spawnFlares() {
+    if (!enemyJet) return;
+    const count = 12;
+    const positions = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      positions[i*3]   = (Math.random() - 0.5) * 2.5;
+      positions[i*3+1] = (Math.random() - 0.5) * 2.5;
+      positions[i*3+2] = (Math.random() - 0.5) * 2.5;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const mat = new THREE.PointsMaterial({ color: 0xffdd00, size: 1.2, transparent: true, opacity: 0.9 });
+    const flare = new THREE.Points(geo, mat);
+    flare.position.copy(enemyJet.position);
+    scene.add(flare);
+    flares.push({ points: flare, mat, age: 0, maxAge: 1.0 });
+  }
+
+  function updateFlares(dt) {
+    flares = flares.filter(f => {
+      f.age += dt;
+      if (f.age > f.maxAge) {
+        scene.remove(f.points);
+        disposeObject(f.points);
+        return false;
+      }
+      f.mat.opacity = Math.max(0, 0.9 - f.age / f.maxAge);
+      f.mat.size = 1.2 + f.age * 1.5;
+      f.points.position.z += dt * 10;
+      return true;
+    });
+  }
+
+  function spawnEnemyTracer() {
+    if (!enemyJet) return;
+    const mat = new THREE.LineBasicMaterial({ color: 0xff8800, transparent: true, opacity: 0.9 });
+    const geo = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,-2)
+    ]);
+    const spark = new THREE.Line(geo, mat);
+    spark.position.copy(enemyJet.position);
+    scene.add(spark);
+    tracers.push({ mesh: spark, mat, vel: new THREE.Vector3((Math.random()-0.5)*0.5, (Math.random()-0.5)*0.3, 2.5), age:0, maxAge:1.0 });
+  }
+
+  function updateTracers(dt) {
+    tracers = tracers.filter(t => {
+      t.age += dt;
+      if (t.age > t.maxAge) { scene.remove(t.mesh); disposeObject(t.mesh); return false; }
+      t.mesh.position.addScaledVector(t.vel, dt * 60);
+      t.mat.opacity = Math.max(0, 0.9 - t.age/t.maxAge);
+      // Near-miss detection — flash viewport
+      if (t.mesh.position.z > jet.position.z - 2 &&
+          t.mesh.position.z < jet.position.z + 2 &&
+          Math.abs(t.mesh.position.x - jet.position.x) < 3 &&
+          !t._hitChecked) {
+        t._hitChecked = true;
+        shakeTimer = Math.max(shakeTimer, 0.12);
+        const vpEl = document.getElementById('viewport3d');
+        vpEl.classList.add('hit-flash');
+        setTimeout(() => vpEl.classList.remove('hit-flash'), 200);
+      }
+      return true;
+    });
+  }
+
+  function updateExplosion(dt) {
+    explosionParticles = explosionParticles.filter(p => {
+      p.age += dt;
+      if (p.age > p.maxAge) { scene.remove(p.mesh); disposeObject(p.mesh); return false; }
+      p.mesh.position.addScaledVector(p.vel, dt * 60);
+      p.vel.y -= dt * 2;
+      p.mat.opacity = Math.max(0, 1 - p.age / p.maxAge);
+      return true;
+    });
+  }
+
+  // ── Machine gun system ──
+  function fireMachineGun() {
+    if (!enemyJet) return;
+    const now = performance.now();
+    if (now - mgLastFired < 120) return;
+    mgLastFired = now;
+    playGunSound();
+    const count = 4 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < count; i++) {
+      const delay = i * 28;
+      setTimeout(() => {
+        if (!enemyJet) return;
+        const geo = new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(0, 0, 0),
+          new THREE.Vector3(0, 0, -1.8)
+        ]);
+        const mat = new THREE.LineBasicMaterial({ color: 0xffee88, transparent: true, opacity: 1 });
+        const round = new THREE.Line(geo, mat);
+        round.position.set(
+          jet.position.x + (Math.random()-0.5)*0.4,
+          jet.position.y + (Math.random()-0.5)*0.4,
+          jet.position.z - 2
+        );
+        const toEnemy = new THREE.Vector3().subVectors(enemyJet.position, round.position).normalize();
+        toEnemy.x += (Math.random()-0.5)*0.08;
+        toEnemy.y += (Math.random()-0.5)*0.08;
+        scene.add(round);
+        mgRounds.push({ mesh: round, mat, vel: toEnemy.multiplyScalar(1.8), age: 0, maxAge: 0.55 });
+      }, delay);
+    }
+  }
+
+  function updateMGRounds(dt) {
+    mgRounds = mgRounds.filter(r => {
+      r.age += dt;
+      if (r.age > r.maxAge) { scene.remove(r.mesh); disposeObject(r.mesh); return false; }
+      r.mesh.position.addScaledVector(r.vel, dt * 80);
+      r.mat.opacity = Math.max(0, 1 - r.age / r.maxAge);
+      return true;
+    });
+  }
+
+  // ── Rotating radio pools — never repeat back-to-back ──
+  function _pickLine(pool, key) {
+    if (!_pickLine._last) _pickLine._last = {};
+    const last = _pickLine._last[key] || -1;
+    let idx;
+    do { idx = Math.floor(Math.random() * pool.length); } while (idx === last && pool.length > 1);
+    _pickLine._last[key] = idx;
+    return pool[idx];
+  }
+
+  const RADIO_HOSTILE_SPOTTED = [
+    'Hostile target incoming.', 'Bandit on approach vector.',
+    'Multiple bogeys. Stay sharp.', 'Inbound contact. Watch your six.',
+    'Tally two. Bandits closing.', 'Contact. Fast mover, coming in hot.',
+  ];
+  const RADIO_HOSTILE_KILL = [
+    'Hostile neutralized.', 'Fox two. Splash one.',
+    'Bogey down. Good kill.', 'Target destroyed. Clear.',
+    'Splash. One less problem.', 'Neutralized. Resuming hunt.',
+  ];
+  const RADIO_TP_SLOW = [
+    'Target is evasive. Staying on it.', 'Bogey holding altitude. Patience.',
+    'Running hard. Not losing him.', 'He is good. But we are better.',
+    'Come on. Give me a clean shot.', 'Tracking. Do not let him breathe.',
+  ];
+  const RADIO_ACQUIRING = [
+    'Bogey. Analyzing long target.', 'Contact. Potential long setup.',
+    'Scanning. Long signal building.',
+  ];
+  const RADIO_ACQUIRING_SHORT = [
+    'Bogey. Analyzing short target.', 'Contact. Potential short setup.',
+    'Scanning. Short signal building.',
+  ];
+  const RADIO_ENTRY_LONG  = ['Tally. Going long. Guns.', 'Long entry. Weapons free.', 'Engaging. Long. Fox one.'];
+  const RADIO_ENTRY_SHORT = ['Tally. Going short. Guns.', 'Short entry. Weapons free.', 'Engaging. Short. Fox one.'];
+  const RADIO_TP1_HIT = [
+    'Bullseye. Stop to entry. Fox two out.', 'First target down. Stop to breakeven.',
+    'TP one. Locked in. Hunting next.', 'Splash TP one. Free money from here.',
+  ];
+  const RADIO_TP2_HIT = [
+    'Fox two. Splash. Hunting TP three.', 'TP two. Stop to one R. Final bogey.',
+    'Two down. One to go. Stay on him.',
+  ];
+  const RADIO_TP3_HIT = [
+    'Splash one. RTB. Good kill.', 'TP three. Full house. Returning to base.',
+    'Max profit. Clean sweep. Good kill.', 'All targets down. Outstanding.',
+  ];
+  const RADIO_DRAWDOWN = [
+    'Taking fire. Holding position.', 'Negative pressure. Staying the course.',
+    'Absorbing. Setup still valid.', 'In the weeds. Holding stop.',
+  ];
+  const RADIO_STOP_NEAR = [
+    'Stop approaching. Brace.', 'Getting pushed. Near the line.',
+    'Close to stop. Hands off.',
+  ];
+  const RADIO_LOST = [
+    'Target lost. Returning to scan.', 'Signal gone. Breaking off.',
+    'Lost the lock. Resuming CAP.',
+  ];
+  const RADIO_BREAKEVEN = [
+    'Breakeven. Returning to CAP.', 'Stopped at entry. No loss. Reset.',
+    'Scratched. Move to next setup.',
+  ];
+  const RADIO_STOPLOSS = [
+    'Defensive maneuvers. Egress.', 'Stop hit. Cut and reset.',
+    'Took the loss. Tactical retreat.', 'Enemy won that round. Regroup.',
+  ];
+
+  // ─── ENEMY UPDATE ───
   function updateEnemy(dt, now) {
     if (!enemyJet) return;
     enemyAge += dt;
 
     if (enemyState === 'approaching') {
-      enemyJet.position.z += (-20 - enemyJet.position.z) * dt * 1.2;
-      enemyJet.position.x = Math.sin(now * 0.0015) * 8 + Math.cos(now * 0.0008) * 4;
-      enemyJet.position.y = 2.5 + Math.sin(now * 0.0012) * 1.5;
-      enemyJet.rotation.z = Math.sin(now * 0.0015) * 0.5;
-      enemyJet.rotation.x = -0.1;
+      const chaseZ = -32;
+      const closingRate = enemyJet.position.z < chaseZ ? 2.2 : 0.6;
+      enemyJet.position.z += (chaseZ - enemyJet.position.z) * dt * closingRate;
+      const weaveX  = Math.sin(now * 0.0012) * 10 + Math.cos(now * 0.0007) * 5;
+      const weaveY  = 2.5 + Math.sin(now * 0.0009) * 1.8;
+      enemyJet.position.x += (weaveX - enemyJet.position.x) * dt * 1.4;
+      enemyJet.position.y += (weaveY - enemyJet.position.y) * dt * 1.4;
+      const bankTarget = (weaveX - enemyJet.position.x) * 0.08;
+      enemyJet.rotation.z += (Math.max(-0.8, Math.min(0.8, bankTarget)) - enemyJet.rotation.z) * dt * 4;
+      enemyJet.rotation.x = -0.15;
 
     } else if (enemyState === 'dogfight') {
-      // Slow, smooth figure-8 path — positions are TARGETS, lerped toward each frame
-      const t = enemyAge * 0.38;   // slow enough to look like real maneuvers
-      const targetX = Math.sin(t) * 14 + Math.cos(t * 0.6) * 4;
-      const targetY = 2.8 + Math.sin(t * 0.7) * 2.5;
-      const targetZ = -22 + Math.sin(t * 0.5) * 8;
-      // Smooth lag — jet eases toward target, never teleports
-      const lag = Math.min(dt * 1.8, 0.08);
+      const t  = enemyAge * 0.48;
+      const t2 = enemyAge * 0.31;
+      const targetX = Math.sin(t)  * 16 + Math.cos(t2 * 0.9) * 5;
+      const targetY = 3.0 + Math.sin(t2 * 0.8) * 3.5 + Math.cos(t * 0.5) * 1.5;
+      const targetZ = -26 + Math.sin(t2 * 0.55) * 10;
+      const lag = Math.min(dt * 2.2, 0.10);
       enemyJet.position.x += (targetX - enemyJet.position.x) * lag;
       enemyJet.position.y += (targetY - enemyJet.position.y) * lag;
       enemyJet.position.z += (targetZ - enemyJet.position.z) * lag;
-      // Bank derived from lateral velocity — feels physical
-      const bankTarget = (targetX - enemyJet.position.x) * 0.06;
-      enemyJet.rotation.z += (Math.max(-0.7, Math.min(0.7, bankTarget)) - enemyJet.rotation.z) * dt * 3;
-      enemyJet.rotation.x += (-0.08 - enemyJet.rotation.x) * dt * 2;
-      // Countermeasure flares — occasional, not every frame
-      if (Math.random() < dt * 0.6) spawnFlares();
-      // Return fire every ~4s
-      if (Math.floor(enemyAge / 4) > Math.floor((enemyAge - dt) / 4)) {
+      const bankTarget = (targetX - enemyJet.position.x) * 0.10;
+      enemyJet.rotation.z += (Math.max(-1.1, Math.min(1.1, bankTarget)) - enemyJet.rotation.z) * dt * 4;
+      const pitchTarget = (targetY - enemyJet.position.y) * -0.06;
+      enemyJet.rotation.x += (Math.max(-0.4, Math.min(0.4, pitchTarget)) - enemyJet.rotation.x) * dt * 3;
+      if (Math.random() < dt * 0.7) spawnFlares();
+      if (Math.floor(enemyAge / 3.5) > Math.floor((enemyAge - dt) / 3.5)) {
         spawnEnemyTracer();
       }
 
@@ -2105,163 +2751,124 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // ── Countermeasure flares ──
-  function spawnFlares() {
-    if (!enemyJet) return;
-    const count = 12;
-    const positions = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) {
-      positions[i*3]   = (Math.random() - 0.5) * 2.5;
-      positions[i*3+1] = (Math.random() - 0.5) * 2.5;
-      positions[i*3+2] = (Math.random() - 0.5) * 2.5;
+  // ─── HOSTILE BOGEY SYSTEM ───
+
+  function buildHostileFighter() {
+    const grp  = new THREE.Group();
+    const tradeDir = state.active.length > 0 ? state.active[0].dir : null;
+    const isLong = tradeDir ? tradeDir === 'LONG' : true;
+    const col  = isLong ? 0x1adb6c : 0xe8304a;
+    const col2 = isLong ? 0x08ffaa : 0xff2060;
+    const M    = (c, op=1) => new THREE.LineBasicMaterial({ color:c, transparent:op<1, opacity:op });
+    const pts  = arr => arr.map(p => new THREE.Vector3(...p));
+    const ln   = (arr, c, op=1) => new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts(arr)), M(c,op));
+    const parts = [];
+    const add  = p => { parts.push(p); grp.add(p); };
+
+    add(ln([[0,0,-7.5],[.22,.08,-5],[.5,.28,-1],[.62,.42,2],[.5,.85,5],[.2,1.2,6.5],[0,1.4,7],[-.2,1.2,6.5],[-.5,.85,5],[-.62,.42,2],[-.5,.28,-1],[-.22,.08,-5],[0,0,-7.5]], col));
+    add(ln([[.5,.22,0],[3.8,.08,1.2],[6.5,-.05,1.8],[7.2,-.05,2.5],[7,-.02,3.2],[.75,.18,3.2]], col));
+    add(ln([[-.5,.22,0],[-3.8,.08,1.2],[-6.5,-.05,1.8],[-7.2,-.05,2.5],[-7,-.02,3.2],[-.75,.18,3.2]], col));
+    add(ln([[.5,.22,0],[6.5,-.05,1.8]], col, 0.5));
+    add(ln([[-.5,.22,0],[-6.5,-.05,1.8]], col, 0.5));
+    add(ln([[0,.42,0],[0,1.0,3],[0,1.4,7]], col));
+    add(ln([[.38,.42,4.5],[.55,.35,4],[1.1,.25,6.5],[1.2,.25,7.2],[.45,.4,5.5]], col));
+    add(ln([[-.38,.42,4.5],[-.55,.35,4],[-1.1,.25,6.5],[-1.2,.25,7.2],[-.45,.4,5.5]], col));
+    add(ln([[.48,.3,5.5],[2.2,.15,6],[2.5,.15,6.8],[.6,.28,6.5]], col));
+    add(ln([[-.48,.3,5.5],[-2.2,.15,6],[-2.5,.15,6.8],[-.6,.28,6.5]], col));
+    add(ln([[0,.42,-1.5],[.3,.88,-0.5],[.32,1.25,1.5],[0,1.38,3],[-.32,1.25,1.5],[-.3,.88,-0.5],[0,.42,-1.5]], col2));
+    add(ln([[0,.88,-0.2],[0,1.38,3]], col2, 0.5));
+    add(ln([[.3,.3,5.5],[.3,-.08,6],[.3,-.08,7.2],[.3,.3,7.2]], col));
+    add(ln([[-.3,.3,5.5],[-.3,-.08,6],[-.3,-.08,7.2],[-.3,.3,7.2]], col));
+    for (let e = -1; e <= 1; e += 2) {
+      for (let i = 0; i < 3; i++) {
+        const ep = [], r = 0.26 - i*0.05, z = 7.0 + i*0.28;
+        for (let j = 0; j <= 18; j++) {
+          const a = j/18*Math.PI*2;
+          ep.push(new THREE.Vector3(e*.3 + Math.cos(a)*r, Math.sin(a)*r+.11, z));
+        }
+        add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(ep),
+          new THREE.LineBasicMaterial({ color: col2, transparent:true, opacity: 0.9-i*.28 })));
+      }
     }
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    const mat = new THREE.PointsMaterial({ color: 0xffdd00, size: 1.2, transparent: true, opacity: 0.9 });
-    const flare = new THREE.Points(geo, mat);
-    flare.position.copy(enemyJet.position);
-    scene.add(flare);
-    let flareAge = 0;
-    const flareAnim = () => {
-      flareAge += 0.04;
-      mat.opacity = Math.max(0, 0.9 - flareAge);
-      mat.size    = 1.2 + flareAge * 1.5;
-      flare.position.z += 0.4;
-      if (flareAge < 1.0) requestAnimationFrame(flareAnim);
-      else scene.remove(flare);
-    };
-    flareAnim();
+    add(ln([[.3,.11,7.2],[.3,.11,18]], col2, 0.28));
+    add(ln([[-.3,.11,7.2],[-.3,.11,18]], col2, 0.28));
+    return { grp, parts };
   }
 
-  // Enemy tracers — small orange sparks fired toward player
-  let tracers = [];
+  function spawnHostile() {
+    const side = Math.random() > 0.5 ? 1 : -1;
+    const { grp, parts } = buildHostileFighter();
+    const archetypes = ['highdive', 'lowstrafe', 'scissors', 'barrelroll', 'sideslice'];
+    const archetype  = archetypes[Math.floor(Math.random() * archetypes.length)];
 
-  // ── Machine gun rounds ──
-  let mgRounds = [];       // { mesh, vel, age, maxAge }
-  let mgLastFired = 0;     // timestamp of last burst
-  let mgBurstNext = 0;     // when next burst is allowed (burst scheduler)
-  let mgBurstCount = 0;    // rounds remaining in current burst
+    let startX, startY, startZ, attackY, swoopDur, speed, wobbleFreq, wobbleAmp, lateralStyle;
 
-  // ── Jet behavior state machine ──
-  let jetMode    = 'idle';   // 'idle' | 'tracking' | 'dogfight' | 'waggle'
-  let jetModeAge = 0;
-  let jetTargetX = 0;
-
-  // radioOnce defined globally above
-
-  // ── Hostile attackers (bad-trade bogeys) ──
-  let hostiles = [];       // [{ group, vel, age, tracers[] }]
-  let hostileTracers = []; // incoming fire that misses (visual only)
-  let hostileSpawnCooldown = 0;
-
-  // ── Enemy wing damage state ──
-  let enemyWingDamaged = false;
-  function spawnEnemyTracer() {
-    if (!enemyJet) return;
-    const mat = new THREE.LineBasicMaterial({ color: 0xff8800, transparent: true, opacity: 0.9 });
-    const geo = new THREE.BufferGeometry().setFromPoints([
-      new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,-2)
-    ]);
-    const spark = new THREE.Line(geo, mat);
-    spark.position.copy(enemyJet.position);
-    scene.add(spark);
-    // Fire toward player (positive Z)
-    tracers.push({ mesh: spark, mat, vel: new THREE.Vector3((Math.random()-0.5)*0.5, (Math.random()-0.5)*0.3, 2.5), age:0, maxAge:1.0 });
-  }
-
-  // ── Machine gun burst toward enemy ──
-  function fireMachineGun() {
-    if (!enemyJet) return;
-    const now = performance.now();
-    if (now - mgLastFired < 120) return; // 120ms between rounds
-    mgLastFired = now;
-    playSound(sndMachineGun, false);  // overlap=false — one burst sound at a time
-    const count = 4 + Math.floor(Math.random() * 3); // 4-6 rounds per burst
-    for (let i = 0; i < count; i++) {
-      setTimeout(() => {
-        if (!enemyJet) return;
-        const geo = new THREE.BufferGeometry().setFromPoints([
-          new THREE.Vector3(0, 0, 0),
-          new THREE.Vector3(0, 0, -1.8)
-        ]);
-        const mat = new THREE.LineBasicMaterial({ color: 0xffee88, transparent: true, opacity: 1 });
-        const round = new THREE.Line(geo, mat);
-        round.position.set(
-          jet.position.x + (Math.random()-0.5)*0.4,
-          jet.position.y + (Math.random()-0.5)*0.4,
-          jet.position.z - 2
-        );
-        // aim toward enemy with small spread
-        const toEnemy = new THREE.Vector3().subVectors(enemyJet.position, round.position).normalize();
-        toEnemy.x += (Math.random()-0.5)*0.08;
-        toEnemy.y += (Math.random()-0.5)*0.08;
-        scene.add(round);
-        mgRounds.push({ mesh: round, mat, vel: toEnemy.multiplyScalar(1.8), age: 0, maxAge: 0.55 });
-      }, i * 28);
+    if (archetype === 'highdive') {
+      startX = side * (12 + Math.random() * 6); startY = 28 + Math.random() * 12;
+      startZ = -70 - Math.random() * 20; attackY = 1.5 + Math.random() * 1.5;
+      swoopDur = 3.2 + Math.random() * 0.8; speed = 48 + Math.random() * 10;
+      wobbleFreq = 0.18 + Math.random() * 0.08; wobbleAmp = 1.5 + Math.random() * 1.0;
+      lateralStyle = 'straight';
+    } else if (archetype === 'lowstrafe') {
+      startX = side * (22 + Math.random() * 10); startY = 2.5 + Math.random() * 1.5;
+      startZ = -95 - Math.random() * 30; attackY = 1.2 + Math.random() * 0.8;
+      swoopDur = 5.5 + Math.random() * 1.5; speed = 62 + Math.random() * 14;
+      wobbleFreq = 0.35 + Math.random() * 0.15; wobbleAmp = 0.6 + Math.random() * 0.5;
+      lateralStyle = 'inward';
+    } else if (archetype === 'scissors') {
+      startX = side * (16 + Math.random() * 8); startY = 8 + Math.random() * 8;
+      startZ = -80 - Math.random() * 20; attackY = 2.0 + Math.random() * 2.0;
+      swoopDur = 4.5 + Math.random() * 1.2; speed = 44 + Math.random() * 8;
+      wobbleFreq = 0.52 + Math.random() * 0.20; wobbleAmp = 5.0 + Math.random() * 3.0;
+      lateralStyle = 'scissors';
+    } else if (archetype === 'barrelroll') {
+      startX = side * (18 + Math.random() * 8); startY = 20 + Math.random() * 8;
+      startZ = -88 - Math.random() * 22; attackY = 1.8 + Math.random() * 2.0;
+      swoopDur = 4.0 + Math.random() * 1.0; speed = 52 + Math.random() * 10;
+      wobbleFreq = 0.90 + Math.random() * 0.40; wobbleAmp = 4.0 + Math.random() * 2.5;
+      lateralStyle = 'barrel';
+    } else {
+      startX = side * (30 + Math.random() * 8); startY = 6 + Math.random() * 8;
+      startZ = -60 - Math.random() * 20; attackY = 2.5 + Math.random() * 2.0;
+      swoopDur = 3.8 + Math.random() * 0.8; speed = 56 + Math.random() * 12;
+      wobbleFreq = 0.22 + Math.random() * 0.12; wobbleAmp = 2.0 + Math.random() * 1.5;
+      lateralStyle = 'slice';
     }
-  }
 
-  function updateMGRounds(dt) {
-    mgRounds = mgRounds.filter(r => {
-      r.age += dt;
-      if (r.age > r.maxAge) { scene.remove(r.mesh); return false; }
-      r.mesh.position.addScaledVector(r.vel, dt * 80);
-      r.mat.opacity = Math.max(0, 1 - r.age / r.maxAge);
-      return true;
+    const phaseX = Math.random() * Math.PI * 2;
+    const phaseY = Math.random() * Math.PI * 2;
+    const phaseR = Math.random() * Math.PI * 2;
+
+    grp.position.set(startX, startY, startZ);
+    grp.rotation.y = Math.PI;
+    scene.add(grp);
+
+    // Show threat type
+    showThreatType(archetype);
+
+    hostiles.push({
+      group: grp, parts,
+      side, startX, startY, startZ, attackY,
+      swoopDur, speed, wobbleFreq, wobbleAmp,
+      lateralStyle, phaseX, phaseY, phaseR, archetype,
+      age: 0, maxAge: 13.0, firedAt: [], killed: false,
+      vel: new THREE.Vector3(0, 0, 0)
     });
   }
 
-  // ── Hostile bogeys — appear when trade is in drawdown, fly in fast and strafe ──
-  function spawnHostile() {
-    const side = Math.random() > 0.5 ? 1 : -1;
-    const grp  = new THREE.Group();
-    const hcol  = 0xff3300;
-    const hcol2 = 0xff7700;
-    const M = (c) => new THREE.LineBasicMaterial({ color: c });
-    const pts = arr => arr.map(p => new THREE.Vector3(...p));
-    const ln = (arr, c) => new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts(arr)), M(c));
-    grp.add(ln([[0,0,5],[.4,.2,3],[.7,.5,0],[.8,.6,-2],[.5,1.4,-4],[0,1.8,-5],[-.5,1.4,-4],[-.8,.6,-2],[-.7,.5,0],[-.4,.2,3],[0,0,5]], hcol));
-    grp.add(ln([[.7,.3,0],[5.5,-.4,-1.5],[5.8,-.4,-2.5],[.9,.3,-2.5]], hcol));
-    grp.add(ln([[-.7,.3,0],[-5.5,-.4,-1.5],[-5.8,-.4,-2.5],[-.9,.3,-2.5]], hcol));
-    grp.add(ln([[0,.8,-3],[0,1.8,-5]], hcol));
-    grp.add(ln([[.3,.6,-4],[1.2,.3,-5],[1.4,.3,-5.5],[.4,.7,-4.8]], hcol));
-    grp.add(ln([[-.3,.6,-4],[-1.2,.3,-5],[-1.4,.3,-5.5],[-.4,.7,-4.8]], hcol));
-    for (let i = 0; i < 2; i++) {
-      const ep = [];
-      for (let j = 0; j <= 16; j++) {
-        const a = j/16*Math.PI*2;
-        ep.push(new THREE.Vector3(Math.cos(a)*.3, Math.sin(a)*.3+.4, -4.8-i*.3));
-      }
-      grp.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(ep),
-        new THREE.LineBasicMaterial({ color: hcol2, transparent: true, opacity: 0.7-i*.3 })));
-    }
-
-    // Spawn on far horizon — deep Z, wide lateral offset so player sees it coming
-    // offsetX keeps it clearly to one side throughout the pass (min 18 units from center)
-    const lateralOffset = side * (18 + Math.random() * 10);
-    grp.position.set(
-      lateralOffset,
-      1.5 + Math.random() * 2,
-      -160 - Math.random() * 40   // horizon distance
-    );
-    // Face mostly forward (toward camera) with slight inward angle
-    grp.rotation.y = Math.PI + side * 0.15;
-    scene.add(grp);
-
-    // Move forward fast (positive Z = toward camera) with slight outward lateral drift
-    // so it NEVER crosses close to center — flies past to one side
-    const vel = new THREE.Vector3(
-      side * (0.04 + Math.random() * 0.03),  // slight outward drift keeps it wide
-      (Math.random() - 0.5) * 0.02,
-      0.9 + Math.random() * 0.3              // fast forward — crossing pass
-    );
-    hostiles.push({ group: grp, vel, age: 0, maxAge: 7.0, firedAt: [], side });
+  function showThreatType(archetype) {
+    const hud = document.querySelector('.hud');
+    if (!hud) return;
+    const el = document.createElement('div');
+    el.className = 'threat-flash';
+    el.textContent = '⚠ ' + archetype.toUpperCase() + ' INBOUND';
+    hud.appendChild(el);
+    setTimeout(() => el.remove(), 2500);
   }
 
-  // ── Intercept missile — homes on a specific hostile group ──
   function fireHostileMissile(hostile) {
     if (!hostile || hostile.killed) return;
-    const color      = 0xffaa00;  // orange — defensive missile
+    const color = 0xffaa00;
     const trailColor = 0xff6600;
     const group = new THREE.Group();
 
@@ -2283,13 +2890,13 @@ document.addEventListener('DOMContentLoaded', () => {
     ]), trailMat);
     group.add(trail);
 
-    // Launch from player position
     group.position.set(
       jet.position.x + (Math.random()-0.5)*2,
       jet.position.y,
-      jet.position.z - 2
+      jet.position.z - 3
     );
     scene.add(group);
+    playMissileSound();
 
     missiles.push({
       group, trail, trailMat,
@@ -2297,66 +2904,139 @@ document.addEventListener('DOMContentLoaded', () => {
       age: 0, maxAge: 6.0,
       isLong: true,
       homing: false,
-      hostileTarget: hostile   // home on this specific hostile
+      hostileTarget: hostile
     });
   }
 
   function updateHostiles(dt, now) {
-    // spawn logic — only when in active trade and drawdown
+    // Spawn logic
     if (state.active.length > 0) {
       hostileSpawnCooldown -= dt;
       const t = state.active[0];
       const isL = t.dir === 'LONG';
       const risk = t.originalRisk || Math.abs(t.entry - t.stop);
-      if (!risk || risk <= 0) return;
-      const rawR = isL ? (state.price - t.entry)/risk : (t.entry - state.price)/risk;
-      const inDrawdown = rawR < -0.3 && !t.tp1Hit;
-      if (inDrawdown && hostileSpawnCooldown <= 0 && hostiles.length < 2) {
-        spawnHostile();
-        hostileSpawnCooldown = 6 + Math.random()*4;
-        radioOnce('hostile', "Bogey. Evading.", 15000, 0.63, 0.90);
+      if (risk && risk > 0) {
+        const rawR = isL ? (state.price - t.entry)/risk : (t.entry - state.price)/risk;
+        const inDrawdown = rawR < -0.3 && !t.tp1Hit;
+        const choppyTrade = state.active.length > 0 && !inDrawdown;
+        const shouldSpawn = inDrawdown || (choppyTrade && hostileSpawnCooldown <= -8);
+        if (shouldSpawn && hostileSpawnCooldown <= 0 && hostiles.length < 3) {
+          spawnHostile();
+          hostileSpawnCooldown = inDrawdown ? (4 + Math.random()*3) : (12 + Math.random()*8);
+          radioOnce('hostile', _pickLine(RADIO_HOSTILE_SPOTTED, 'hostile_in'), 12000, 0.63, 0.90);
+        }
       }
     }
 
     hostiles = hostiles.filter(h => {
       h.age += dt;
-      if (h.age > h.maxAge) { scene.remove(h.group); return false; }
+      if (h.age > h.maxAge) {
+        if (h.pieces) h.pieces.forEach(pc => { scene.remove(pc.mesh); disposeObject(pc.mesh); });
+        if (!h.piecesScattered) { scene.remove(h.group); disposeObject(h.group); }
+        return false;
+      }
 
-      // If missile-killed, run death animation then remove
+      // Killed — scatter pieces
       if (h.killed) {
-        h.group.rotation.z += dt * 5;
-        h.group.rotation.x += dt * 2;
-        h.group.position.y -= dt * 6;
-        h.group.position.z += dt * 20;
         h.killAge = (h.killAge || 0) + dt;
-        if (h.killAge > 1.2) { scene.remove(h.group); return false; }
+        if (!h.piecesScattered) {
+          h.piecesScattered = true;
+          h.pieces = [];
+          (h.parts || []).forEach(part => {
+            h.group.remove(part);
+            scene.add(part);
+            part.position.copy(h.group.position);
+            const sv = new THREE.Vector3(
+              (Math.random()-0.5) * 12, Math.random() * 8 + 2, (Math.random()-0.5) * 10
+            );
+            const rv = new THREE.Vector3(
+              (Math.random()-0.5) * 8, (Math.random()-0.5) * 8, (Math.random()-0.5) * 8
+            );
+            h.pieces.push({ mesh: part, sv, rv, age: 0 });
+          });
+          scene.remove(h.group);
+        }
+        if (h.pieces) {
+          h.pieces.forEach(pc => {
+            pc.age += dt;
+            pc.sv.y -= dt * 12;
+            pc.mesh.position.addScaledVector(pc.sv, dt);
+            pc.mesh.rotation.x += pc.rv.x * dt;
+            pc.mesh.rotation.y += pc.rv.y * dt;
+            pc.mesh.rotation.z += pc.rv.z * dt;
+            if (pc.mesh.material) {
+              pc.mesh.material.opacity = Math.max(0, 1 - pc.age / 1.8);
+              pc.mesh.material.transparent = true;
+            }
+          });
+        }
+        if (h.killAge > 2.0) {
+          if (h.pieces) h.pieces.forEach(pc => { scene.remove(pc.mesh); disposeObject(pc.mesh); });
+          return false;
+        }
         return true;
       }
 
-      h.group.position.addScaledVector(h.vel, dt * 55);
-      h.group.rotation.z = h.vel.x * 0.4;
+      // ── Per-archetype flight path ──
+      const sp = Math.min(1.0, h.age / h.swoopDur);
+      const sp_ease = sp * sp * (3 - 2 * sp);
+      h.group.position.z += dt * (h.speed + h.age * 1.8) * 0.88;
 
-      // Auto-intercept — fire missile when hostile reaches intercept range
-      // and hasn't been shot at yet. Range = z > -80 (visible, closing fast).
-      const interceptRange = h.group.position.z > -80 && !h.missilesFired;
-      if (interceptRange) {
-        h.missilesFired = true;
-        // Fire 2 intercept missiles staggered
-        for (let i = 0; i < 2; i++) {
-          setTimeout(() => {
-            fireHostileMissile(h);
-          }, i * 350);
-        }
-        radioOnce('intercept', 'Fox two. Splash bogey.', 8000, 0.64, 0.92);
+      let targetY, targetX, rollAmt, pitchAmt;
+
+      if (h.archetype === 'highdive') {
+        targetY = h.startY + (h.attackY - h.startY) * sp_ease + Math.sin(h.age * h.wobbleFreq + h.phaseY) * h.wobbleAmp * (1 - sp);
+        targetX = h.startX * (1 - sp * 0.55) + Math.sin(h.age * h.wobbleFreq * 0.7 + h.phaseX) * 1.5 * (1 - sp);
+        rollAmt = h.side * (1 - sp_ease) * 1.2 + Math.sin(h.age * h.wobbleFreq + h.phaseR) * 0.25;
+        pitchAmt = -(1 - sp_ease) * 0.65;
+      } else if (h.archetype === 'lowstrafe') {
+        targetY = h.startY + Math.sin(h.age * h.wobbleFreq + h.phaseY) * h.wobbleAmp;
+        targetX = h.startX * (1 - sp * 0.7);
+        rollAmt = h.side * -0.35 + Math.sin(h.age * h.wobbleFreq * 0.8 + h.phaseR) * 0.18;
+        pitchAmt = Math.sin(h.age * h.wobbleFreq * 0.5 + h.phaseY) * 0.12;
+      } else if (h.archetype === 'scissors') {
+        targetX = h.startX * (1 - sp * 0.5) + Math.sin(h.age * h.wobbleFreq + h.phaseX) * h.wobbleAmp;
+        targetY = h.startY + (h.attackY - h.startY) * sp_ease + Math.cos(h.age * h.wobbleFreq * 0.6 + h.phaseY) * 2.0 * (1 - sp);
+        const turnDir = Math.cos(h.age * h.wobbleFreq + h.phaseX);
+        rollAmt = turnDir * 1.3 * (0.4 + 0.6 * (1 - sp));
+        pitchAmt = -(1 - sp_ease) * 0.3 + Math.sin(h.age * h.wobbleFreq * 0.8) * 0.15;
+      } else if (h.archetype === 'barrelroll') {
+        const rollPhase = h.age * h.wobbleFreq + h.phaseR;
+        targetY = h.startY + (h.attackY - h.startY) * sp_ease + Math.sin(rollPhase) * h.wobbleAmp * (1 - sp);
+        targetX = h.startX * (1 - sp * 0.6) + Math.cos(rollPhase) * h.wobbleAmp * 0.5 * (1 - sp);
+        rollAmt = rollPhase * h.side;
+        pitchAmt = -(1 - sp_ease) * 0.4 + Math.cos(rollPhase * 0.5) * 0.2;
+      } else {
+        const sliceProgress = sp_ease;
+        targetX = h.startX * (1 - sliceProgress * 1.1) + Math.sin(h.age * h.wobbleFreq + h.phaseX) * h.wobbleAmp * (1 - sp);
+        targetY = h.startY + (h.attackY - h.startY) * sp_ease + Math.sin(h.age * h.wobbleFreq * 0.9 + h.phaseY) * 1.8 * (1 - sp);
+        rollAmt = h.side * (1.5 - sp_ease * 0.8) + Math.sin(h.age * h.wobbleFreq + h.phaseR) * 0.3;
+        pitchAmt = -(1 - sp_ease) * 0.35;
       }
 
-      // Strafe pass tracers — only if somehow survived (missed by missiles)
-      const atPlayerDepth = h.group.position.z > -8 && h.group.position.z < 5;
+      h.group.position.x += (targetX - h.group.position.x) * dt * 2.0;
+      h.group.position.y += (targetY - h.group.position.y) * dt * 2.5;
+      h.group.rotation.z  = rollAmt;
+      h.group.rotation.x  = pitchAmt;
+
+      // Auto-intercept
+      const interceptRange = h.group.position.z > -55 && h.group.position.z < 5 && !h.missilesFired;
+      if (interceptRange) {
+        h.missilesFired = true;
+        for (let i = 0; i < 2; i++) {
+          setTimeout(() => fireHostileMissile(h), i * 350);
+        }
+        radioOnce('intercept', _pickLine(RADIO_HOSTILE_KILL, 'hostile_kill'), 6000, 0.64, 0.92);
+      }
+
+      // Strafe pass tracers
+      const atPlayerDepth = h.group.position.z > -8 && h.group.position.z < 15;
       const safeDistance  = Math.abs(h.group.position.x) > 14;
       if (atPlayerDepth && safeDistance && h.firedAt.length === 0) {
         h.firedAt.push(h.age);
         for (let i = 0; i < 4; i++) {
           setTimeout(() => {
+            if (h.killed) return;
             const geo = new THREE.BufferGeometry().setFromPoints([
               new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,-1.5)
             ]);
@@ -2366,8 +3046,7 @@ document.addEventListener('DOMContentLoaded', () => {
             scene.add(spark);
             const miss = new THREE.Vector3(
               -h.side * (2 + Math.random() * 5),
-              (Math.random() - 0.5) * 3,
-              1.8
+              (Math.random() - 0.5) * 3, 1.8
             ).normalize();
             hostileTracers.push({ mesh: spark, mat, vel: miss.multiplyScalar(1.8), age: 0, maxAge: 0.8 });
           }, i * 70);
@@ -2376,57 +3055,34 @@ document.addEventListener('DOMContentLoaded', () => {
       return true;
     });
 
-    // update hostile tracers
+    // Update hostile tracers
     hostileTracers = hostileTracers.filter(t => {
       t.age += dt;
-      if (t.age > t.maxAge) { scene.remove(t.mesh); return false; }
+      if (t.age > t.maxAge) { scene.remove(t.mesh); disposeObject(t.mesh); return false; }
       t.mesh.position.addScaledVector(t.vel, dt * 70);
       t.mat.opacity = Math.max(0, 1 - t.age/t.maxAge);
       return true;
     });
   }
 
-  function updateTracers(dt) {
-    tracers = tracers.filter(t => {
-      t.age += dt;
-      if (t.age > t.maxAge) { scene.remove(t.mesh); return false; }
-      t.mesh.position.addScaledVector(t.vel, dt * 60);
-      t.mat.opacity = Math.max(0, 0.9 - t.age/t.maxAge);
-      return true;
-    });
-  }
-
-  function updateExplosion(dt) {
-    explosionParticles = explosionParticles.filter(p => {
-      p.age += dt;
-      if (p.age > p.maxAge) { scene.remove(p.mesh); return false; }
-      p.mesh.position.addScaledVector(p.vel, dt * 60);
-      p.vel.y -= dt * 2; // gravity
-      p.mat.opacity = Math.max(0, 1 - p.age / p.maxAge);
-      return true;
-    });
-  }
-
+  // ═══════════════════════════════════════════════════════════
+  //  ANIMATION LOOP
+  // ═══════════════════════════════════════════════════════════
   let lastFrameTime = performance.now();
   let animId;
+
   function animate() {
     animId = requestAnimationFrame(animate);
     const now = performance.now();
     const dt = Math.min((now - lastFrameTime) / 1000, 0.05);
     lastFrameTime = now;
 
-    // ── Ground scroll speed scales with |velocity| ──
-    // Base speed + strong multiplier so fast price moves = fast ground rush
+    // ── Ground scroll ──
     const absVel = Math.abs(state.vel);
-    const groundSpeed = 15.0 + absVel * 200;  // 15 = fighter jet cruise
+    const groundSpeed = 15.0 + absVel * 200;
     groundOffset = (groundOffset + groundSpeed * dt) % GRID_STEP;
 
-    // Scroll lateral lines by adjusting their Z position cyclically
-    groundLines.forEach(({ line, baseZ }) => {
-      const shifted = ((baseZ + groundOffset * GRID_STEP) % (GRID_ROWS * GRID_STEP));
-      line.position.z = groundOffset;
-    });
-    // Simple uniform Z shift on whole group approach — move each lateral line's mesh
+    // Scroll lateral lines (single pass — fixed duplicate)
     groundLines.forEach(({ line }, idx) => {
       const cycleLen = GRID_ROWS * GRID_STEP;
       const rawZ = groundLines[idx].baseZ + groundOffset;
@@ -2434,42 +3090,45 @@ document.addEventListener('DOMContentLoaded', () => {
       line.position.z = wrappedZ - groundLines[idx].baseZ;
     });
 
-    // Dynamic grid color
+    // Grid color — throttled
     updateGridColor();
 
+    // ── Camera FOV breathing with velocity ──
+    const targetFOV = 65 + absVel * 80;
+    camera.fov += (Math.min(targetFOV, 85) - camera.fov) * dt * 3;
+    camera.updateProjectionMatrix();
+
+    // ── Engine glow ──
+    if (engineLight) {
+      engineLight.intensity = 0.2 + absVel * 15;
+      engineLight.color.setHex(state.vel > 0.001 ? 0x1adb6c : (state.vel < -0.001 ? 0xe8304a : 0xe8651a));
+    }
 
     // ── Jet attitude ──
     const _total = state.buyVol + state.sellVol;
     const bp     = _total > 0 ? state.buyVol / _total : 0.5;
-    // Pitch: very subtle, capped tight so nose never looks extreme
     const targetP = Math.max(-0.12, Math.min(0.12, state.vel * 3));
-    // Base roll: buy/sell pressure, kept gentle
     const targetBaseRoll = (bp - 0.5) * 0.6;
 
     jetModeAge += dt;
 
-    // Target X — follows enemy laterally during dogfight, gentle drift otherwise
     if ((jetMode === 'dogfight' || jetMode === 'tracking') && enemyJet) {
       jetTargetX = enemyJet.position.x * 0.1;
     } else {
       jetTargetX = Math.sin(now * 0.00045) * 0.4 + Math.cos(now * 0.00028) * 0.15;
     }
 
-    // Roll target
     let targetRoll = targetBaseRoll;
     if ((jetMode === 'dogfight' || jetMode === 'tracking') && enemyJet) {
-      // Gentle bank toward enemy direction
       targetRoll = targetBaseRoll + enemyJet.position.x * 0.025;
       targetRoll = Math.max(-0.35, Math.min(0.35, targetRoll));
     }
     if (jetMode === 'waggle') {
-      // Wing waggle after kill — two quick rocks then back to neutral
       const wag = Math.sin(jetModeAge * 14) * Math.max(0, 1 - jetModeAge / 1.2);
       targetRoll = wag * 0.45;
       if (jetModeAge > 1.2) { jetMode = 'idle'; jetModeAge = 0; }
     }
 
-    // Smooth everything
     state.pitch += (targetP    - state.pitch) * Math.min(dt * 2.5, 1);
     state.roll  += (targetRoll - state.roll)  * Math.min(dt * 3.0, 1);
     jet.rotation.x = state.pitch;
@@ -2477,32 +3136,35 @@ document.addEventListener('DOMContentLoaded', () => {
     jet.position.x += (jetTargetX - jet.position.x) * Math.min(dt * 1.8, 1);
     jet.position.y  = Math.sin(now * 0.00062) * 0.12;
 
+    // ── Update all combat systems ──
     updateMissiles(dt);
     updateEnemy(dt, now);
     updateTracers(dt);
     updateMGRounds(dt);
     updateHostiles(dt, now);
     updateExplosion(dt);
-    // Burst-fire machine gun — 3-5 round burst, then 2.5-4s gap
+    updateFlares(dt);
+
+    // Burst-fire machine gun scheduler
     if (state.active.length > 0 && enemyState === 'dogfight') {
       if (now >= mgBurstNext) {
         if (mgBurstCount > 0) {
           fireMachineGun();
           mgBurstCount--;
-          mgBurstNext = now + 110;   // 110ms between rounds within a burst
+          mgBurstNext = now + 110;
         } else {
-          // Start a new burst after a gap
-          mgBurstCount = 4 + Math.floor(Math.random() * 4);  // 4-7 rounds
-          mgBurstNext  = now + 2500 + Math.random() * 1500;  // 2.5-4s gap
+          mgBurstCount = 4 + Math.floor(Math.random() * 4);
+          mgBurstNext  = now + 2500 + Math.random() * 1500;
         }
       }
     } else {
       mgBurstCount = 0;
     }
-    updateStars(dt);
-    checkPilotChatter(now);
 
-    // Screen shake — camera only, not the jet
+    updateStars(dt);
+    checkPilotChatter(now, state);
+
+    // ── Screen shake ──
     if (shakeTimer > 0) {
       shakeTimer -= dt;
       const mag = Math.min(shakeTimer, 0.3) * 0.75;
@@ -2514,11 +3176,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     renderer.render(scene, camera);
-    updateEnemyLabel();
-    updateInstruments();
+
+    // ── DOM updates — throttled to ~10fps ──
+    if (now - state._lastInstrumentUpdate > 100) {
+      updateEnemyLabel();
+      updateInstruments();
+      state._lastInstrumentUpdate = now;
+    }
   }
 
-  // ─── ENEMY LABEL — projects 3D enemy position to screen ───
+  // ─── ENEMY LABEL — projects 3D position to screen ───
   function updateEnemyLabel() {
     const el = document.getElementById('enemy-label');
     if (!el) return;
@@ -2528,7 +3195,6 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // Determine label text + color from trade phase
     const isLong = enemyDir === 'LONG';
     const col    = isLong ? 'var(--green)' : 'var(--red)';
     let phase = 'ENTRY';
@@ -2538,32 +3204,30 @@ document.addEventListener('DOMContentLoaded', () => {
       else if (t.tp1Hit) phase = 'TP2';
       else               phase = 'TP1';
     }
-    // Before trade entry — this is the entry bogey
     const labelText = state.active.length === 0
       ? (isLong ? 'LONG ENTRY' : 'SHORT ENTRY')
       : (isLong ? 'LONG ' : 'SHORT ') + phase;
     el.textContent = labelText;
     el.style.color = col;
 
-    // Project enemy world position → screen coords
     const worldPos = enemyJet.position.clone();
-    worldPos.y += 4.5;   // offset above the jet
+    worldPos.y += 4.5;
     worldPos.project(camera);
 
-    // worldPos is now in NDC (-1..1). Convert to CSS pixels.
     const vpRect = vp.getBoundingClientRect();
     const sx = (worldPos.x *  0.5 + 0.5) * vpRect.width;
     const sy = (worldPos.y * -0.5 + 0.5) * vpRect.height;
 
-    // Hide if behind camera (z > 1) or off-screen
     if (worldPos.z > 1 || sx < -100 || sx > vpRect.width + 100 || sy < -50 || sy > vpRect.height + 50) {
       el.style.display = 'none';
       return;
     }
 
-    el.style.display  = 'block';
-    el.style.left     = sx + 'px';
-    el.style.top      = sy + 'px';
+    el.style.display = 'block';
+    // Use transform instead of left/top to avoid layout thrash
+    el.style.transform = `translate(${sx}px, ${sy}px) translate(-50%, -100%)`;
+    el.style.left = '0';
+    el.style.top = '0';
   }
 
   // ─── INSTRUMENTS ───
@@ -2609,8 +3273,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Alt
     if (state.price > 0) {
       document.getElementById('alt-val').textContent = '$'+state.price.toFixed(0);
-      document.getElementById('alt-hi').textContent = '$'+(state.hi||0).toFixed(0);
-      document.getElementById('alt-lo').textContent = '$'+(state.lo===Infinity?0:state.lo).toFixed(0);
+      document.getElementById('alt-hi').textContent = state.hi > 0 ? '$'+state.hi.toFixed(0) : '——';
+      document.getElementById('alt-lo').textContent = state.lo > 0 ? '$'+state.lo.toFixed(0) : '——';
     }
 
     // CVD trend bottom bar
@@ -2646,33 +3310,41 @@ document.addEventListener('DOMContentLoaded', () => {
     const ss = String(now.getUTCSeconds()).padStart(2,'0');
     document.getElementById('bb-clock').textContent = `${hh}:${mm}:${ss}`;
 
-    // Session label
     const h = now.getUTCHours();
     let session = 'SYDNEY';
-    if (h >= 7 && h < 16) session = 'LONDON';
-    if (h >= 13 && h < 22) session = 'NEW YORK';
     if (h >= 0 && h < 7)  session = 'ASIA';
+    if (h >= 7 && h < 13) session = 'LONDON';
+    if (h >= 13 && h < 16) session = 'LDN / NY';
+    if (h >= 16 && h < 22) session = 'NEW YORK';
     document.getElementById('bb-session').textContent = session;
   }
   setInterval(updateClock, 1000);
   updateClock();
 
-  // ─── SENTIMENT (composite score → arc needle) ───
+  // ─── SENTIMENT — with inertia smoothing ───
+  let _sentimentCurrent = 50;
+
   function updateSentiment(score, isLong) {
-    // score 0-8, map to 0-100 sentiment
-    // isLong shifts it toward greed, !isLong toward fear
     const base = 50;
     const raw = isLong ? base + (score/8)*50 : base - (score/8)*50;
-    const clamped = Math.max(0, Math.min(100, raw));
+    const target = Math.max(0, Math.min(100, raw));
 
-    // Needle: rotates from -90deg (far left=0) to +90deg (far right=100)
-    const angle = -90 + (clamped / 100) * 180; // degrees
+    // Smooth toward target
+    _sentimentCurrent += (target - _sentimentCurrent) * 0.12;
+    const clamped = _sentimentCurrent;
+
+    const angle = -90 + (clamped / 100) * 180;
     const rad = angle * Math.PI / 180;
     const cx = 60, cy = 60, len = 38;
-    const x2 = cx + Math.sin(rad) * len;  // sin because 0° is up when rotated
+    const x2 = cx + Math.sin(rad) * len;
     const y2 = cy - Math.cos(rad) * len;
+
     const needle = document.getElementById('sent-needle');
     if (needle) { needle.setAttribute('x2', x2.toFixed(1)); needle.setAttribute('y2', y2.toFixed(1)); }
+
+    // Pulsing dot at needle tip
+    const dot = document.getElementById('sent-dot');
+    if (dot) { dot.setAttribute('cx', x2.toFixed(1)); dot.setAttribute('cy', y2.toFixed(1)); }
 
     const scoreEl = document.getElementById('sent-score');
     if (scoreEl) scoreEl.textContent = Math.round(clamped);
@@ -2688,9 +3360,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (scoreEl) scoreEl.setAttribute('fill', col);
   }
 
-  // ─── OPEN POSITION TRACKER (runs every frame) ───
+  // ─── OPEN POSITION TRACKER ───
   function updateOpenPosition() {
+    const posBox = document.getElementById('open-pos-box');
     if (state.active.length === 0) {
+      posBox.className = 'open-pos-box';
       document.getElementById('op-dir').textContent = 'NONE';
       document.getElementById('op-dir').style.color = 'var(--text-mid)';
       document.getElementById('op-unreal').textContent = '——';
@@ -2704,15 +3378,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const p = state.price;
     if (!p || p <= 0) return;
     const isL = t.dir === 'LONG';
-    // Always use originalRisk — immune to stop moves
     const risk = t.originalRisk;
     if (!risk || risk <= 0) return;
     const rawR = isL ? (p - t.entry) / risk : (t.entry - p) / risk;
-    // Clamp display to reasonable range — no Inf
     const unreal = Math.max(-2, Math.min(8, rawR));
 
+    // Active glow state
+    posBox.className = 'open-pos-box ' + (isL ? 'active-long' : 'active-short');
+
     const dirEl = document.getElementById('op-dir');
-    // Show current phase
     const phase = t.tp2Hit ? ' TP3' : t.tp1Hit ? ' TP2' : ' ENTRY';
     dirEl.textContent = t.dir + phase;
     dirEl.style.color = isL ? 'var(--green)' : 'var(--red)';
@@ -2721,7 +3395,6 @@ document.addEventListener('DOMContentLoaded', () => {
     urEl.textContent = (unreal >= 0 ? '+' : '') + unreal.toFixed(2) + 'R';
     urEl.style.color = unreal > 0.5 ? 'var(--green)' : (unreal < -0.3 ? 'var(--red)' : 'var(--yellow)');
 
-    // Show next target distance
     const nextTP = t.tp2Hit ? t.tp3 : t.tp1Hit ? t.tp2 : t.tp1;
     const distNext = isL ? (nextTP - p) : (p - nextTP);
     const distSL   = isL ? (p - t.stop) : (t.stop - p);
@@ -2751,38 +3424,66 @@ document.addEventListener('DOMContentLoaded', () => {
     while (log.children.length > 8) log.lastChild.remove();
   }
 
-  // Update open log item when trade closes
   function refreshSignalLog() {
     const log = document.getElementById('sig-log');
-    // Update first open item
     const openItem = log.querySelector('.open');
     if (!openItem && state.active.length > 0) {
       addSignalLog(state.active[0], 'open');
     }
   }
-  function spawnBlip(side, value) {
+
+  // ─── RADAR BLIP — object pool ───
+  const BLIP_POOL_SIZE = 30;
+  const blipPool = [];
+
+  function initBlipPool() {
     const radar = document.getElementById('radar');
-    const b = document.createElement('div');
-    b.className = 'radar-blip';
-    const a = Math.random()*Math.PI*2, d = 10+Math.random()*28;
-    b.style.cssText = `left:${50+Math.cos(a)*d}%;top:${50+Math.sin(a)*d}%;` +
-      `width:${value>25000?8:4}px;height:${value>25000?8:4}px;` +
-      `background:${side==='BUY'?'var(--green)':'var(--red)'};` +
-      `box-shadow:0 0 4px ${side==='BUY'?'var(--green)':'var(--red)'};`;
-    radar.appendChild(b);
-    setTimeout(()=>b.remove(), 1500);
+    for (let i = 0; i < BLIP_POOL_SIZE; i++) {
+      const b = document.createElement('div');
+      b.className = 'radar-blip';
+      b.style.display = 'none';
+      radar.appendChild(b);
+      blipPool.push({ el: b, active: false, timer: null });
+    }
   }
 
-  // ─── INDICATORS ───
+  function spawnBlip(side, value) {
+    const slot = blipPool.find(b => !b.active);
+    if (!slot) return;
+    slot.active = true;
+    const a = Math.random()*Math.PI*2, d = 10+Math.random()*28;
+    const size = value > 25000 ? 8 : 4;
+    const color = side === 'BUY' ? 'var(--green)' : 'var(--red)';
+    slot.el.style.cssText = `left:${50+Math.cos(a)*d}%;top:${50+Math.sin(a)*d}%;` +
+      `width:${size}px;height:${size}px;` +
+      `background:${color};box-shadow:0 0 4px ${color};display:block;`;
+    if (slot.timer) clearTimeout(slot.timer);
+    slot.timer = setTimeout(() => {
+      slot.el.style.display = 'none';
+      slot.active = false;
+    }, 1500);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  //  INDICATORS
+  // ═══════════════════════════════════════════════════════════
+
+  // Wilder's smoothed RSI (industry standard)
   function calcRSI(closes, p=14) {
-    if(closes.length < p+1) return null;
-    let g=0,l=0;
-    for(let i=closes.length-p;i<closes.length;i++){
-      const d=closes[i]-closes[i-1];
-      d>0?g+=d:l-=d;
+    if (closes.length < p + 1) return null;
+    let avgGain = 0, avgLoss = 0;
+    for (let i = 1; i <= p; i++) {
+      const d = closes[i] - closes[i-1];
+      if (d > 0) avgGain += d; else avgLoss -= d;
     }
-    if(l===0) return 100;
-    return 100-(100/(1+(g/p)/(l/p)));
+    avgGain /= p; avgLoss /= p;
+    for (let i = p + 1; i < closes.length; i++) {
+      const d = closes[i] - closes[i-1];
+      avgGain = (avgGain * (p-1) + (d > 0 ? d : 0)) / p;
+      avgLoss = (avgLoss * (p-1) + (d < 0 ? -d : 0)) / p;
+    }
+    if (avgLoss === 0) return 100;
+    return 100 - (100 / (1 + avgGain / avgLoss));
   }
 
   function calcEMA(d, p) {
@@ -2885,12 +3586,18 @@ document.addEventListener('DOMContentLoaded', () => {
     evaluateSignal();
   }
 
+  // ═══════════════════════════════════════════════════════════
+  //  SIGNAL ENGINE v3 — Fixed
+  // ═══════════════════════════════════════════════════════════
   function evaluateSignal() {
     const {ind, price, ob} = state;
     const now = Date.now();
-    const t1  = state.trades.filter(t=>t.time>now-60000);
-    const t5  = state.trades.filter(t=>t.time>now-300000);
-    const t15 = state.trades.filter(t=>t.time>now-900000);
+
+    // Filter trades — cascade from largest to smallest for efficiency
+    const cutoff15 = now - 900000, cutoff5 = now - 300000, cutoff1 = now - 60000;
+    const t15 = state.trades.filter(t=>t.time>cutoff15);
+    const t5  = t15.filter(t=>t.time>cutoff5);
+    const t1  = t5.filter(t=>t.time>cutoff1);
 
     const cvd1  = t1.reduce((d,t)=>d+(t.side==='BUY'?t.vol:-t.vol),0);
     const cvd5  = t5.reduce((d,t)=>d+(t.side==='BUY'?t.vol:-t.vol),0);
@@ -2908,77 +3615,60 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('ba-ratio').textContent=baR.toFixed(3);
     document.getElementById('ba-ratio').style.color=baR>1?'var(--green)':'var(--red)';
 
-    // ── REDESIGNED SIGNAL ENGINE ──
-    // Two separate strategies that don't conflict:
-    // LONG:  Momentum continuation — trend up, dip to VWAP, CVD recovering
-    // SHORT: Momentum continuation — trend down, rally to VWAP, CVD weakening
-    // No contradictory "below BB AND all CVDs positive" nonsense.
-
     const atr = ind.atr || 0;
 
-    // EMA trend proxy: use price vs VWAP as trend direction indicator
-    // plus CVD15 as the longer-term flow
-    const trendUp   = ind.vwap ? price > ind.vwap * 0.999 : false;  // price above VWAP = uptrend
-    const trendDown = ind.vwap ? price < ind.vwap * 1.001 : false;  // price below VWAP = downtrend
+    // VWAP trend — require clear separation
+    const trendUp   = ind.vwap ? price > ind.vwap * 1.001 : false;
+    const trendDown = ind.vwap ? price < ind.vwap * 0.999 : false;
 
-    // MACD direction
-    const macdUp   = ind.macd !== null && ind.macd > 0;
-    const macdDown = ind.macd !== null && ind.macd < 0;
+    // MACD: require momentum AND improving — first reading does NOT auto-pass
+    const macdUp    = ind.macd !== null && ind.macd > 0 &&
+                      ind.macdPrev !== null && ind.macd > ind.macdPrev;
+    const macdDown  = ind.macd !== null && ind.macd < 0 &&
+                      ind.macdPrev !== null && ind.macd < ind.macdPrev;
 
-    // BB squeeze / expansion — ATR relative to BB width
-    const bbWidth  = (ind.bbUp && ind.bbLo) ? ind.bbUp - ind.bbLo : 0;
-    const bbMid    = (ind.bbUp && ind.bbLo) ? (ind.bbUp + ind.bbLo) / 2 : price;
+    const bbMid = (ind.bbUp && ind.bbLo) ? (ind.bbUp + ind.bbLo) / 2 : price;
 
-    // ── LONG CONDITIONS (momentum continuation + mean reversion blend) ──
+    // CVD momentum — normalize by average trade size
+    const avgTradeSize = t1.length > 0 ? t1.reduce((s,t) => s + t.vol, 0) / t1.length : 0.001;
+    const cvdThreshold = avgTradeSize * 2;
+    const cvdLongMom  = cvd1 > cvdThreshold && cvd5 > 0;
+    const cvdShortMom = cvd1 < -cvdThreshold && cvd5 < 0;
+
+    // ── LONG conditions — symmetric with SHORT ──
     const LC = {
-      // 1. RSI in healthy range — not overbought, not in freefall
-      rsi:    ind.rsi !== null && ind.rsi > 30 && ind.rsi < 65,
-
-      // 2. Short-term CVD turning positive (buyers stepping in)
-      cvd:    cvd1 > 0 && cvd5 >= 0,
-
-      // 3. Whale net buying in last 5 min
-      whale:  wf > 2000,
-
-      // 4. Price pulling back to or below BB midpoint — entry at value
-      bb:     ind.bbLo !== null && price < bbMid * 1.002,
-
-      // 5. Price above VWAP — confirms uptrend context
-      vwap:   ind.vwap !== null && trendUp,
-
-      // 6. Order book bid-heavy
-      ob:     baR > 1.08,
-
-      // 7. MACD positive — momentum with us
-      macd:   macdUp,
-
-      // 8. 15-min CVD positive — longer flow confirming direction
-      trend:  cvd15 > 0
+      rsi:   ind.rsi !== null && ind.rsi > 35 && ind.rsi < 63,
+      cvd:   cvdLongMom,
+      whale: wf > 5000,
+      bb:    ind.bbLo !== null && price <= bbMid * 1.001,
+      vwap:  trendUp,
+      ob:    baR > 1.12,
+      macd:  macdUp,
+      trend: cvd15 > 0.05
     };
 
-    // ── SHORT CONDITIONS (mirror logic) ──
+    // ── SHORT conditions — symmetric with LONG ──
     const SC = {
-      rsi:    ind.rsi !== null && ind.rsi > 35 && ind.rsi < 70,
-      cvd:    cvd1 < 0 && cvd5 <= 0,
-      whale:  wf < -2000,
-      bb:     ind.bbUp !== null && price > bbMid * 0.998,
-      vwap:   ind.vwap !== null && trendDown,
-      ob:     baR < 0.92,
-      macd:   macdDown,
-      trend:  cvd15 < 0
+      rsi:   ind.rsi !== null && ind.rsi > 37 && ind.rsi < 65,
+      cvd:   cvdShortMom,
+      whale: wf < -5000,
+      bb:    ind.bbUp !== null && price >= bbMid * 0.999,
+      vwap:  trendDown,
+      ob:    baR < 0.88,
+      macd:  macdDown,
+      trend: cvd15 < -0.05
     };
 
     const ls = Object.values(LC).filter(Boolean).length;
     const ss = Object.values(SC).filter(Boolean).length;
 
-    // Must have a clear winner and at least 5/8 for ACQUIRING, 6/8 for entry
-    const isL   = ls >= ss;
+    const isL   = ls > ss;
     const conds = isL ? LC : SC;
     const score = isL ? ls : ss;
 
-    // ── Update warning lights ──
+    // ── Update warning lights — fixed mapping (MACD→w-macd) ──
     const condKeys = ['rsi','cvd','whale','bb','vwap','ob','macd','trend'];
-    const lightIds = ['w-rsi','w-cvd','w-whale','w-bb','w-vwap','w-ob','w-atr','w-trend'];
+    const lightIds = ['w-rsi','w-cvd','w-whale','w-bb','w-vwap','w-ob','w-macd','w-trend'];
     condKeys.forEach((k,i) => {
       const el = document.getElementById(lightIds[i]);
       if (el) el.className = 'warn-light' + (conds[k] ? ' ok' : '');
@@ -2990,10 +3680,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('sig-confidence').textContent = `CONDITIONS: ${score} / 8`;
     updateSentiment(score, isL);
 
+    // Lock tone escalation
+    if (score >= 6) synthLockTone(score - 4);
+
     const sigDir  = document.getElementById('sig-direction');
     const badge   = document.getElementById('sig-badge');
     const lockEl  = document.getElementById('lock-corners');
-    const lcEls   = ['lc1','lc2','lc3','lc4'].map(id=>document.getElementById(id));
 
     if (score >= 6 && ls !== ss) {
       const dir = isL ? 'LONG' : 'SHORT';
@@ -3002,24 +3694,17 @@ document.addEventListener('DOMContentLoaded', () => {
       badge.textContent   = dir;
       badge.className     = 'sig-badge ' + (isL ? 'long' : 'short');
       lockEl.classList.add('active');
-      lcEls.forEach(e => {
-        if (!e) return;
-        e.className = e.className.replace(' short','');
-        if (!isL) e.className += ' short';
-      });
+      // Parent-context class for lock corner colors
+      lockEl.classList.toggle('short-lock', !isL);
 
       if (state.price > 0) {
-        // ── POSITION SIZING: ATR-scaled stops ──
-        // Use 1.0× ATR stop (tighter = smaller loss if wrong)
-        // TP1 at 1.0× risk (1:1 R:R — partial exit to lock profit)
-        // TP2 at 2.0× risk (trail to breakeven after TP1)
-        const useATR  = Math.max(atr, 50);    // floor $50 — realistic BTC stop
+        const useATR  = Math.max(atr * 1.2, 80);
         const entry   = price;
         const stop    = isL ? entry - useATR : entry + useATR;
         const risk    = Math.abs(entry - stop);
-        const tp1     = isL ? entry + risk       : entry - risk;        // 1:1 R
-        const tp2     = isL ? entry + risk * 2.2 : entry - risk * 2.2; // 2.2:1 R
-        const tp3     = isL ? entry + risk * 4.0 : entry - risk * 4.0; // 4:1 R runner
+        const tp1     = isL ? entry + risk * 1.0 : entry - risk * 1.0;
+        const tp2     = isL ? entry + risk * 2.0 : entry - risk * 2.0;
+        const tp3     = isL ? entry + risk * 3.5 : entry - risk * 3.5;
 
         document.getElementById('p-entry').textContent = '$'+entry.toFixed(0);
         document.getElementById('p-stop').textContent  = '$'+stop.toFixed(0);
@@ -3028,7 +3713,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (state.active.length === 0 && now > state.cooldownUntil) {
           const lastClose = state.closed[state.closed.length-1]?.closeTime || 0;
-          if (now - lastClose > 20000) {   // 20s gap between trades
+          if (now - lastClose > 10000) {
             enterTrade(dir, entry, stop, tp1, tp2);
           }
         }
@@ -3040,28 +3725,30 @@ document.addEventListener('DOMContentLoaded', () => {
       badge.textContent  = score >= 5 ? 'ACQUIRING' : 'SCANNING';
       badge.className    = 'sig-badge';
       lockEl.classList.remove('active');
+      lockEl.classList.remove('short-lock');
 
       if (score >= 5 && enemyState === 'none') {
         spawnEnemy(isL ? 'LONG' : 'SHORT');
-        radioOnce('acquiring', isL ? 'Bogey. Analyzing long target.' : 'Bogey. Analyzing short target.', 12000, 0.65, 0.88);
+        radioOnce('acquiring', _pickLine(isL ? RADIO_ACQUIRING : RADIO_ACQUIRING_SHORT, 'acquiring'), 12000, 0.65, 0.88);
       }
       if (score < 5 && enemyState === 'approaching') {
         triggerEnemyEscape();
-        radioOnce('lost', 'Target lost.', 10000, 0.65, 0.88);
+        radioOnce('lost', _pickLine(RADIO_LOST, 'lost'), 10000, 0.65, 0.88);
       }
     }
 
     checkTrades();
   }
 
-  // Called when signal fires — jet is already dogfighting the ENTRY bogey.
-  // We fire bursts + missile to "shoot it down", which confirms the trade entry.
-  // Then a fresh TP1 bogey spawns for the next fight.
-  function enterTrade(dir,entry,stop,tp1,tp2){
+  // ═══════════════════════════════════════════════════════════
+  //  TRADE ENTRY
+  // ═══════════════════════════════════════════════════════════
+  function enterTrade(dir, entry, stop, tp1, tp2) {
     const risk = Math.abs(entry - stop);
-    const tp3  = dir === 'LONG' ? entry + risk * 4.0 : entry - risk * 4.0;
+    const tp3  = dir === 'LONG' ? entry + risk * 3.5 : entry - risk * 3.5;
+    const tradeId = Date.now();
     const t = {
-      id: Date.now(), time: Date.now(), dir, entry,
+      id: tradeId, time: Date.now(), dir, entry,
       stop, tp1, tp2, tp3,
       originalRisk: risk,
       tp1Hit: false, tp2Hit: false,
@@ -3072,28 +3759,32 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('bb-active').textContent = state.active.length;
     addSignalLog(t, 'open');
 
+    // Entry HUD flash
+    showEntryHUD(dir, entry, stop, tp1);
+
     if (dir === 'LONG') {
-      radioAnnounce('Tally. Going long. Guns.', 0.65, 0.90);
+      radioAnnounce(_pickLine(RADIO_ENTRY_LONG, 'entry'), 0.65, 0.90);
     } else {
-      radioAnnounce('Tally. Going short. Guns.', 0.65, 0.90);
+      radioAnnounce(_pickLine(RADIO_ENTRY_SHORT, 'entry'), 0.65, 0.90);
     }
 
-    // Make sure enemy is in dogfight
     if (enemyJet && enemyState === 'approaching') {
       enemyState = 'dogfight'; enemyAge = 0;
     }
     jetMode = 'dogfight'; jetModeAge = 0;
 
-    // Fire burst + kill missile at ENTRY bogey — shooting it down confirms entry
-    for (let i = 0; i < 5; i++) setTimeout(() => fireMachineGun(), i * 120);
+    // Guard all delayed actions against trade already closing
+    const isTradeAlive = () => state.active.some(tr => tr.id === tradeId);
+
+    for (let i = 0; i < 5; i++) setTimeout(() => { if (isTradeAlive()) fireMachineGun(); }, i * 120);
     setTimeout(() => {
-      fireMissile(dir);   // kill shot
+      if (!isTradeAlive()) return;
+      fireMissile(dir);
       hitFlash();
     }, 700);
-    // Kill the entry bogey and spawn TP1 bogey after it goes down
     setTimeout(() => {
+      if (!isTradeAlive()) return;
       triggerEnemyDeath();
-      // Spawn fresh TP1 enemy after explosion clears
       setTimeout(() => {
         if (state.active.length > 0) {
           spawnEnemy(dir);
@@ -3108,10 +3799,14 @@ document.addEventListener('DOMContentLoaded', () => {
     enemyJet.traverse(child => {
       if (child.material && child.material.color) {
         const orig = child.material.color.getHex();
-        child.material.color.setHex(0xffffff);
-        setTimeout(() => { if (child.material) child.material.color.setHex(orig); }, 180);
+        child.material.color.setHex(0xff9900);
+        setTimeout(() => { if (child.material) child.material.color.setHex(orig); }, 140);
       }
     });
+    if (!enemyWingDamaged) {
+      enemyWingDamaged = true;
+      addWingSmoke();
+    }
   }
 
   function addWingSmoke() {
@@ -3125,13 +3820,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const sGeo = new THREE.BufferGeometry();
     sGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
-    const sMat = new THREE.PointsMaterial({ color: 0xcccccc, size: 0.65, transparent: true, opacity: 0.7, depthWrite: false });
+    const sMat = new THREE.PointsMaterial({ color: 0x333333, size: 0.9, transparent: true, opacity: 0.55, depthWrite: false });
     const smoke = new THREE.Points(sGeo, sMat);
     enemyJet.add(smoke);
     smoke.position.set(4.5, -0.1, 0);
   }
 
-  function checkTrades(){
+  // ═══════════════════════════════════════════════════════════
+  //  TRADE MANAGEMENT
+  // ═══════════════════════════════════════════════════════════
+  function checkTrades() {
     const p = state.price;
     if (!p || p <= 0) return;
     const now = Date.now();
@@ -3139,15 +3837,15 @@ document.addEventListener('DOMContentLoaded', () => {
     state.active.forEach(t => {
       if (t.status === 'closed') return;
       const L = t.dir === 'LONG';
-      // Always use originalRisk — never divide by a moved stop
       const risk = t.originalRisk;
-      if (!risk || risk <= 0) return;   // guard against bad init — skip
+      if (!risk || risk <= 0) return;
       const rawR = L ? (p - t.entry) / risk : (t.entry - p) / risk;
+      const isTradeAlive = () => t.status !== 'closed';
 
       // ── Stop hit ──
-      if ((L && p <= t.stop) || (!L && p >= t.stop)) {
-        // After TP1 stop is at breakeven, so this is always 0R or better
-        const result = t.tp2Hit ? Math.max(1.5, rawR) : t.tp1Hit ? Math.max(0, rawR) : -1;
+      const isStopHit = L ? (p <= t.stop) : (p >= t.stop);
+      if (isStopHit) {
+        const result = t.tp2Hit ? Math.max(1.0, rawR) : t.tp1Hit ? Math.max(0, rawR) : -1.0;
         closeTrade(t, result);
         return;
       }
@@ -3161,66 +3859,68 @@ document.addEventListener('DOMContentLoaded', () => {
       // ── Drawdown radio (pre-TP1 only) ──
       if (!t.tp1Hit && rawR < -0.5 && !t._warnedHalf) {
         t._warnedHalf = true;
-        radioAnnounce('Taking fire. Holding.', 0.65, 0.90);
-        // MG burst when under fire
-        for (let i = 0; i < 3; i++) setTimeout(() => fireMachineGun(), i * 160);
+        radioAnnounce(_pickLine(RADIO_DRAWDOWN, 'drawdown'), 0.65, 0.90);
+        for (let i = 0; i < 3; i++) setTimeout(() => { if (isTradeAlive()) fireMachineGun(); }, i * 160);
       }
       if (!t.tp1Hit && rawR < -0.8 && !t._warnedStop) {
         t._warnedStop = true;
-        radioAnnounce('Stop approaching.', 0.64, 0.90);
+        radioAnnounce(_pickLine(RADIO_STOP_NEAR, 'stopnear'), 0.64, 0.90);
       }
 
-      // ── TP1 hit — burst + missile kills TP1 bogey, spawn TP2 bogey ──
+      // ── TP1 hit ──
       if (!t.tp1Hit && ((L && p >= t.tp1) || (!L && p <= t.tp1))) {
         t.tp1Hit = true;
-        t.stop = t.entry;   // stop → breakeven
-        radioAnnounce('Bullseye. Stop to entry. Fox two out.', 0.66, 0.90);
-        // Heavy burst then kill missile
-        for (let i = 0; i < 6; i++) setTimeout(() => fireMachineGun(), i * 100);
-        setTimeout(() => { fireMissile(t.dir); hitFlash(); }, 650);
+        t.stop = t.entry;
+        radioAnnounce(_pickLine(RADIO_TP1_HIT, 'tp1'), 0.66, 0.90);
+        for (let i = 0; i < 6; i++) setTimeout(() => { if (isTradeAlive()) fireMachineGun(); }, i * 100);
         setTimeout(() => {
-          triggerEnemyDeath();   // blow up TP1 bogey
-          // Spawn fresh TP2 bogey
+          if (!isTradeAlive()) return;
+          fireMissile(t.dir); hitFlash();
+        }, 650);
+        setTimeout(() => {
+          if (!isTradeAlive()) return;
+          triggerEnemyDeath();
           setTimeout(() => {
             if (state.active.length > 0) {
               spawnEnemy(t.dir);
               enemyState = 'dogfight'; enemyAge = 0;
-              radioAnnounce('New bogey. Hunting TP2.', 0.65, 0.90);
+              radioAnnounce(_pickLine(RADIO_TP_SLOW, 'tpslow'), 0.65, 0.90);
             }
           }, 1800);
         }, 1000);
       }
 
-      // ── TP2 hit — kill TP2 bogey, spawn TP3 bogey ──
+      // ── TP2 hit ──
       if (t.tp1Hit && !t.tp2Hit && ((L && p >= t.tp2) || (!L && p <= t.tp2))) {
         t.tp2Hit = true;
-        t.stop = t.tp1;   // lock in 1R minimum
-        radioAnnounce('Fox two. Splash. Hunting TP3.', 0.65, 0.90);
-        for (let i = 0; i < 6; i++) setTimeout(() => fireMachineGun(), i * 90);
-        setTimeout(() => fireMissile(t.dir), 300);
-        setTimeout(() => fireMissile(t.dir), 550);
+        t.stop = t.tp1;
+        radioAnnounce(_pickLine(RADIO_TP2_HIT, 'tp2'), 0.65, 0.90);
+        for (let i = 0; i < 6; i++) setTimeout(() => { if (isTradeAlive()) fireMachineGun(); }, i * 90);
+        setTimeout(() => { if (isTradeAlive()) fireMissile(t.dir); }, 300);
+        setTimeout(() => { if (isTradeAlive()) fireMissile(t.dir); }, 550);
         setTimeout(() => {
+          if (!isTradeAlive()) return;
           hitFlash();
-          triggerEnemyDeath();   // blow up TP2 bogey
-          // Spawn fresh TP3 bogey
+          triggerEnemyDeath();
           setTimeout(() => {
             if (state.active.length > 0) {
               spawnEnemy(t.dir);
               enemyState = 'dogfight'; enemyAge = 0;
-              radioAnnounce('Final bogey. TP3 in sight.', 0.65, 0.90);
+              radioAnnounce(_pickLine(RADIO_TP_SLOW, 'tpslow2'), 0.65, 0.90);
             }
           }, 1800);
         }, 900);
       }
 
-      // ── TP3 hit — kill salvo, close, victory ──
+      // ── TP3 hit ──
       if (t.tp2Hit && ((L && p >= t.tp3) || (!L && p <= t.tp3))) {
-        if (t._tp3Fired) return;   // guard double-fire
+        if (t._tp3Fired) return;
         t._tp3Fired = true;
-        radioUrgent('Splash one. RTB. Good kill.', 0.62, 0.90);
-        for (let i = 0; i < 5; i++) setTimeout(() => fireMachineGun(), i * 80);
-        for (let i = 0; i < 3; i++) setTimeout(() => fireMissile(t.dir), 200 + i * 150);
+        radioUrgent(_pickLine(RADIO_TP3_HIT, 'tp3'), 0.62, 0.90);
+        for (let i = 0; i < 5; i++) setTimeout(() => { if (isTradeAlive()) fireMachineGun(); }, i * 80);
+        for (let i = 0; i < 3; i++) setTimeout(() => { if (isTradeAlive()) fireMissile(t.dir); }, 200 + i * 150);
         setTimeout(() => {
+          if (!isTradeAlive()) return;
           triggerEnemyDeath();
           const finalR = L ? (state.price - t.entry) / risk : (t.entry - state.price) / risk;
           closeTrade(t, Math.max(3.0, Math.min(8.0, finalR)));
@@ -3228,24 +3928,32 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // ── Trailing stop after TP2 — tighter trail so TP3 chase doesn't give back profit ──
+      // ── Adlib: if hunting TP slowly ──
+      if (state.active.length > 0) {
+        if (!t._adlibTime) t._adlibTime = now;
+        if (now - t._adlibTime > 90000) {
+          t._adlibTime = now;
+          radioOnce('tpslow_adlib', _pickLine(RADIO_TP_SLOW, 'tpadlib'), 80000, 0.65, 0.90);
+        }
+      }
+
+      // ── Trailing stop after TP2 ──
       if (t.tp2Hit) {
         const peak = L
           ? Math.max(t._peak || p, p)
           : Math.min(t._peak || p, p);
         t._peak = peak;
-        // Trail only 0.7R — tight leash. If price stalls, bank TP2 profit quickly.
-        const trailStop = L ? peak - risk * 0.7 : peak + risk * 0.7;
+        const trailStop = L ? peak - risk * 0.8 : peak + risk * 0.8;
         if (L && trailStop > t.stop) t.stop = trailStop;
         if (!L && trailStop < t.stop) t.stop = trailStop;
 
-        // TP3 timeout: if we've been hunting TP3 for more than 8 minutes, take profit now
+        // TP3 timeout — 8 min max hunt
         if (!t._tp3StartTime) t._tp3StartTime = now;
         if (now - t._tp3StartTime > 480000 && !t._tp3Fired) {
           t._tp3Fired = true;
-          radioAnnounce('TP3 timeout. Banking profit. RTB.', 0.65, 0.90);
+          radioAnnounce(_pickLine(RADIO_TP3_HIT, 'tp3'), 0.65, 0.90);
           const snapR = L ? (p - t.entry) / risk : (t.entry - p) / risk;
-          setTimeout(() => closeTrade(t, Math.max(1.0, snapR)), 400);
+          setTimeout(() => { if (isTradeAlive()) closeTrade(t, Math.max(1.0, snapR)); }, 400);
         }
       }
     });
@@ -3254,219 +3962,376 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('bb-active').textContent = state.active.length;
   }
 
-  function closeTrade(t,r){
-    if (t.status === 'closed') return;   // guard double-close
-    t.status='closed'; t.pnl=r; t.closeTime=Date.now();
-    if(r>0) state.wins++; else if(r<0) state.losses++;
-    state.pnl += r*100;
+  // ═══════════════════════════════════════════════════════════
+  //  CLOSE TRADE
+  // ═══════════════════════════════════════════════════════════
+  function closeTrade(t, r) {
+    if (t.status === 'closed') return;
+    t.status = 'closed'; t.pnl = r; t.closeTime = Date.now();
+    if (r > 0) state.wins++; else if (r < 0) state.losses++;
+    state.pnl += r * 100;
     state.closed.push(t);
-    state.cooldownUntil = Date.now() + 25000;  // 25s cooldown — stay active
+    state.cooldownUntil = Date.now() + 15000;
 
-    // Combat outcome — TP kills already handled in checkTrades (bogey already dead)
-    // Only handle stop/breakeven/timeout here
+    // Combat outcome
     if (r >= 1.0) {
-      // Win — bogey already killed by missile salvo in checkTrades
-      // Just do waggle if not already doing it
       if (jetMode !== 'waggle') { jetMode = 'waggle'; jetModeAge = 0; }
-    } else if (r === 0) {
-      radioAnnounce('Breakeven. Returning to CAP.', 0.66, 0.90);
+    } else if (Math.abs(r) < 0.05) {
+      // Breakeven — float comparison safe with threshold
+      radioAnnounce(_pickLine(RADIO_BREAKEVEN, 'be'), 0.66, 0.90);
       if (enemyJet) triggerEnemyEscape();
-    } else {
-      // Stop loss — enemy wins, shoots us
-      radioAnnounce('Defensive maneuvers. Egress.', 0.65, 0.90);
+    } else if (r < 0) {
+      // Stop loss — enemy wins
+      radioAnnounce(_pickLine(RADIO_STOPLOSS, 'sl'), 0.65, 0.90);
+      synthWarningAlarm();
+      shakeTimer = 0.6;
+      const vpEl = document.getElementById('viewport3d');
+      vpEl.classList.add('hit-flash');
+      setTimeout(() => vpEl.classList.remove('hit-flash'), 400);
       if (enemyJet) triggerEnemyEscape();
     }
-    // Clear hostile bogeys when trade closes
-    hostiles.forEach(h => scene.remove(h.group));
+
+    // Clear hostiles + scattered pieces
+    hostiles.forEach(h => {
+      if (h.pieces) h.pieces.forEach(pc => { scene.remove(pc.mesh); disposeObject(pc.mesh); });
+      if (!h.piecesScattered) { scene.remove(h.group); disposeObject(h.group); }
+    });
     hostiles = [];
     enemyWingDamaged = false;
 
-    // Update signal log — replace open entry
+    // Update signal log
     const log = document.getElementById('sig-log');
     const openItem = log.querySelector('.open');
     if (openItem) {
-      openItem.className = 'sig-log-item ' + (r>0?'win':'loss');
-      openItem.style.color = r>0?'var(--green)':'var(--red)';
+      openItem.className = 'sig-log-item ' + (r > 0 ? 'win' : 'loss');
+      openItem.style.color = r > 0 ? 'var(--green)' : 'var(--red)';
       const spans = openItem.querySelectorAll('span');
-      if (spans[3]) spans[3].textContent = (r>0?'+':'')+r.toFixed(1)+'R';
+      if (spans[3]) spans[3].textContent = (r > 0 ? '+' : '') + r.toFixed(1) + 'R';
     } else {
       addSignalLog(t, 'closed');
     }
 
-    // Streak
+    // Streak — count from end of closed array
     let streak = 0;
-    for (let i=state.closed.length-1;i>=0;i--) {
+    for (let i = state.closed.length - 1; i >= 0; i--) {
       const last = state.closed[i];
       if (last.pnl > 0 && r > 0) streak++;
       else if (last.pnl < 0 && r < 0) streak++;
       else break;
     }
-    const streakEl = document.getElementById('p-streak');
-    if(streakEl){ streakEl.textContent = streak; streakEl.style.color = r>0?'var(--green)':'var(--red)'; }
 
-    // Avg duration
-    const durations = state.closed.filter(x=>x.closeTime).map(x=>x.closeTime-x.time);
-    if(durations.length>0){
-      const avgMs = durations.reduce((a,b)=>a+b,0)/durations.length;
-      const avgMin = Math.floor(avgMs/60000);
-      const avgSec = Math.floor((avgMs%60000)/1000);
-      const durEl = document.getElementById('p-avgdur');
-      if(durEl) durEl.textContent=`${avgMin}m${avgSec}s`;
+    // Batch DOM updates
+    requestAnimationFrame(() => {
+      const streakEl = document.getElementById('p-streak');
+      if (streakEl) { streakEl.textContent = streak; streakEl.style.color = r > 0 ? 'var(--green)' : 'var(--red)'; }
+
+      // Avg duration
+      const durations = state.closed.filter(x => x.closeTime).map(x => x.closeTime - x.time);
+      if (durations.length > 0) {
+        const avgMs = durations.reduce((a, b) => a + b, 0) / durations.length;
+        const avgMin = Math.floor(avgMs / 60000);
+        const avgSec = Math.floor((avgMs % 60000) / 1000);
+        const durEl = document.getElementById('p-avgdur');
+        if (durEl) durEl.textContent = `${avgMin}m${avgSec}s`;
+      }
+
+      // Avg R:R
+      const allRs = state.closed.map(x => x.pnl);
+      const avgRR = allRs.length > 0 ? allRs.reduce((a, b) => a + b, 0) / allRs.length : null;
+      const rrEl = document.getElementById('p-rr');
+      if (rrEl) rrEl.textContent = avgRR !== null ? (avgRR >= 0 ? '+' : '') + avgRR.toFixed(1) + 'R' : '——';
+
+      document.getElementById('p-wins').textContent = state.wins;
+      document.getElementById('p-losses').textContent = state.losses;
+      const pnlEl = document.getElementById('pnl-val');
+      pnlEl.textContent = (state.pnl >= 0 ? '+' : '') + '$' + state.pnl.toFixed(0);
+      pnlEl.style.color = state.pnl >= 0 ? 'var(--green)' : 'var(--red)';
+      // Gradient text for positive PnL
+      if (state.pnl > 0) pnlEl.classList.add('positive');
+      else pnlEl.classList.remove('positive');
+
+      const tot = state.wins + state.losses;
+      const wrStr = tot > 0 ? ((state.wins / tot) * 100).toFixed(0) + '%' : '——';
+      document.getElementById('wr').textContent = wrStr;
+      const wr2 = document.getElementById('wr2');
+      if (wr2) { wr2.textContent = wrStr; wr2.style.color = state.wins / Math.max(tot, 1) >= 0.5 ? 'var(--green)' : 'var(--red)'; }
+      document.getElementById('p-signals').textContent = state.closed.length + state.active.length;
+    });
+
+    // Win rate milestone celebrations
+    if (state.wins === 5 && state.losses === 0) {
+      radioUrgent('Five for five. Perfect record. Unbreakable.', 0.58, 0.85);
     }
-
-    // Avg R:R — expectancy across all trades
-    const allRs = state.closed.map(x => x.pnl);
-    const avgRR = allRs.length > 0 ? allRs.reduce((a,b)=>a+b,0)/allRs.length : null;
-    const rrEl = document.getElementById('p-rr');
-    if(rrEl) rrEl.textContent = avgRR !== null ? (avgRR>=0?'+':'')+avgRR.toFixed(1)+'R' : '——';
-
-    document.getElementById('p-wins').textContent=state.wins;
-    document.getElementById('p-losses').textContent=state.losses;
-    const pnlEl=document.getElementById('pnl-val');
-    pnlEl.textContent=(state.pnl>=0?'+':'')+'$'+state.pnl.toFixed(0);
-    pnlEl.style.color=state.pnl>=0?'var(--green)':'var(--red)';
-    const tot=state.wins+state.losses;
-    const wrStr = tot>0?((state.wins/tot)*100).toFixed(0)+'%':'——';
-    document.getElementById('wr').textContent=wrStr;
-    const wr2=document.getElementById('wr2'); if(wr2){ wr2.textContent=wrStr; wr2.style.color=state.wins/Math.max(tot,1)>=0.5?'var(--green)':'var(--red)'; }
-    document.getElementById('p-signals').textContent=state.closed.length+state.active.length;
-    const bsEl=document.getElementById('bb-sigs'); if(bsEl) bsEl.textContent=state.closed.length+state.active.length;
+    if (state.pnl > 1000 && state.pnl - r * 100 <= 1000) {
+      radioOnce('bigpnl', 'One thousand dollars. Not bad for a day in the sky.', 60000, 0.62, 0.88);
+    }
   }
 
-  // ─── TRADE PROCESSING ───
-  function processTrade(data){
-    const price=parseFloat(data.price), vol=parseFloat(data.amount);
-    const side=data.type===0?'BUY':'SELL', val=price*vol;
-    const now=Date.now(), sec=Math.floor(now/1000);
+  // ═══════════════════════════════════════════════════════════
+  //  TRADE PROCESSING — batched for performance
+  // ═══════════════════════════════════════════════════════════
+  let _tradeBatch = [];
+  let _tradeFlushScheduled = false;
 
-    if(!state.firstPrice) state.firstPrice=price;
-
-    // TPS
-    if(sec!==state.lastSec){
-      state.tps=state.tradesThisSec; state.tradesThisSec=1; state.lastSec=sec;
-      document.getElementById('tps').textContent=state.tps;
-    } else state.tradesThisSec++;
-
-    // Velocity
-    if(state.price>0){
-      state.prevVel=state.vel;
-      state.vel=state.vel*.88+((price-state.price)/state.price)*.12;
-      state.acc=state.vel-state.prevVel;
+  function queueTrade(data) {
+    _tradeBatch.push(data);
+    if (!_tradeFlushScheduled) {
+      _tradeFlushScheduled = true;
+      requestAnimationFrame(flushTrades);
     }
-
-    // Vol
-    if(side==='BUY'){state.buyVol+=vol;state.cvd+=vol;}
-    else{state.sellVol+=vol;state.cvd-=vol;}
-    document.getElementById('buy-vol-val').textContent=state.buyVol.toFixed(3);
-    document.getElementById('sell-vol-val').textContent=state.sellVol.toFixed(3);
-
-    // Session H/L
-    if(!state.hi) state.hi=price;
-    if(state.lo===Infinity) state.lo=price;
-    state.hi=Math.max(state.hi,price);
-    state.lo=Math.min(state.lo,price);
-
-    state.trades.push({time:now,price,vol,side,val});
-    state.trades=state.trades.filter(t=>t.time>now-300000);
-
-    updateCandle(price,vol,now);
-    priceSeries.update({time:sec,value:price});
-
-    state.prevPrice=state.price;
-    state.price=price;
-
-    // UI
-    document.getElementById('price').textContent='$'+price.toLocaleString(undefined,{minimumFractionDigits:2});
-    const pct=(price-state.firstPrice)/state.firstPrice*100;
-    const dEl=document.getElementById('delta');
-    dEl.textContent=(pct>=0?'+':'')+pct.toFixed(2)+'%';
-    dEl.className=pct>=0?'pos':'neg';
-
-    document.getElementById('hi').textContent='$'+state.hi.toFixed(0);
-    document.getElementById('lo').textContent='$'+state.lo.toFixed(0);
-    document.getElementById('vol').textContent=(state.buyVol+state.sellVol).toFixed(2);
-    document.getElementById('cvd-total').textContent=(state.cvd>=0?'+':'')+state.cvd.toFixed(3);
-    document.getElementById('cvd-total').style.color=state.cvd>=0?'var(--green)':'var(--red)';
-
-    addToTape({side,price,vol,val});
-    spawnBlip(side,val);
   }
 
-  function addToTape({side,price,vol,val}){
-    const tape=document.getElementById('tape');
-    const d=document.createElement('div');
-    const whale=val>=25000,big=val>=10000&&!whale;
-    d.className='tape-item '+side.toLowerCase()+(whale?' whale':(big?' big':''));
-    d.innerHTML=`<span>${side[0]}</span><span>$${price.toFixed(0)}</span><span>${vol.toFixed(3)}</span><span>${(val/1000).toFixed(0)}K</span>`;
+  function flushTrades() {
+    _tradeFlushScheduled = false;
+    const batch = _tradeBatch;
+    _tradeBatch = [];
+    if (batch.length === 0) return;
+
+    const now = Date.now();
+
+    // Process all trades for state
+    batch.forEach(data => {
+      const price = parseFloat(data.price), vol = parseFloat(data.amount);
+      const side = data.type === 0 ? 'BUY' : 'SELL', val = price * vol;
+      const sec = Math.floor(now / 1000);
+
+      if (!state.firstPrice) state.firstPrice = price;
+
+      // TPS
+      if (sec !== state.lastSec) {
+        state.tps = state.tradesThisSec; state.tradesThisSec = 1; state.lastSec = sec;
+      } else state.tradesThisSec++;
+
+      // Velocity — time-normalized
+      if (state.price > 0) {
+        const timeSince = state._lastTradeTime > 0 ? (now - state._lastTradeTime) / 1000 : 0.1;
+        const alpha = 1 - Math.exp(-timeSince / 2.0);
+        state.prevVel = state.vel;
+        state.vel = state.vel * (1 - alpha) + ((price - state.price) / state.price) * alpha;
+        state.acc = state.vel - state.prevVel;
+      }
+      state._lastTradeTime = now;
+
+      // Volume
+      if (side === 'BUY') { state.buyVol += vol; state.cvd += vol; }
+      else { state.sellVol += vol; state.cvd -= vol; }
+
+      // Session H/L
+      if (!state.hi) state.hi = price;
+      if (!state.lo) state.lo = price;
+      state.hi = Math.max(state.hi, price);
+      state.lo = Math.min(state.lo, price);
+
+      state.trades.push({ time: now, price, vol, side, val });
+
+      updateCandle(price, vol, now);
+
+      // Feed 1-second candle
+      if (!state._csCandle || state._csCandle.time !== sec) {
+        if (state._csCandle) priceSeries.update(state._csCandle);
+        state._csCandle = { time: sec, open: price, high: price, low: price, close: price };
+      } else {
+        state._csCandle.high  = Math.max(state._csCandle.high, price);
+        state._csCandle.low   = Math.min(state._csCandle.low, price);
+        state._csCandle.close = price;
+      }
+
+      state.prevPrice = state.price;
+      state.price = price;
+    });
+
+    // Periodic trade cleanup — every 10s instead of every trade
+    if (!state._lastTradeClean || now - state._lastTradeClean > 10000) {
+      state.trades = state.trades.filter(t => t.time > now - 300000);
+      state._lastTradeClean = now;
+    }
+
+    // Chart update — throttled
+    if (now - state._lastChartUpdate > 100) {
+      if (state._csCandle) priceSeries.update(state._csCandle);
+      lineOverlay.update({ time: Math.floor(now / 1000), value: state.price });
+      state._lastChartUpdate = now;
+    }
+
+    state._indicatorsDirty = true;
+
+    // UI updates — single pass with final values
+    const lastTrade = batch[batch.length - 1];
+    const price = state.price;
+
+    // Price flash
+    const priceEl = document.getElementById('price');
+    priceEl.textContent = '$' + price.toLocaleString(undefined, { minimumFractionDigits: 2 });
+    priceEl.classList.remove('flash');
+    void priceEl.offsetWidth; // trigger reflow for re-animation
+    priceEl.classList.add('flash');
+
+    const pct = (price - state.firstPrice) / state.firstPrice * 100;
+    const dEl = document.getElementById('delta');
+    dEl.textContent = (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%';
+    dEl.className = pct >= 0 ? 'pos' : 'neg';
+
+    document.getElementById('hi').textContent = '$' + state.hi.toFixed(0);
+    document.getElementById('lo').textContent = '$' + state.lo.toFixed(0);
+    document.getElementById('vol').textContent = (state.buyVol + state.sellVol).toFixed(2);
+    document.getElementById('tps').textContent = state.tps;
+    document.getElementById('buy-vol-val').textContent = state.buyVol.toFixed(3);
+    document.getElementById('sell-vol-val').textContent = state.sellVol.toFixed(3);
+    document.getElementById('cvd-total').textContent = (state.cvd >= 0 ? '+' : '') + state.cvd.toFixed(3);
+    document.getElementById('cvd-total').style.color = state.cvd >= 0 ? 'var(--green)' : 'var(--red)';
+
+    // Only add last 5 trades to tape (skip middle ones during bursts)
+    const tapeTrades = batch.slice(-5);
+    tapeTrades.forEach(data => {
+      const p2 = parseFloat(data.price), v2 = parseFloat(data.amount);
+      const s2 = data.type === 0 ? 'BUY' : 'SELL', val2 = p2 * v2;
+      addToTape({ side: s2, price: p2, vol: v2, val: val2 });
+    });
+
+    // Only spawn blips for significant trades
+    batch.forEach(data => {
+      const p2 = parseFloat(data.price), v2 = parseFloat(data.amount);
+      const s2 = data.type === 0 ? 'BUY' : 'SELL', val2 = p2 * v2;
+      if (val2 > 5000) spawnBlip(s2, val2);
+    });
+  }
+
+  function addToTape({ side, price, vol, val }) {
+    const tape = document.getElementById('tape');
+    const d = document.createElement('div');
+    const whale = val >= 25000, big = val >= 10000 && !whale;
+    d.className = 'tape-item ' + side.toLowerCase() + (whale ? ' whale' : (big ? ' big' : ''));
+    d.innerHTML = `<span>${side[0]}</span><span>$${price.toFixed(0)}</span><span>${vol.toFixed(3)}</span><span>${(val/1000).toFixed(0)}K</span>`;
     tape.prepend(d);
-    while(tape.children.length>60) tape.lastChild.remove();
+    while (tape.children.length > 60) tape.lastChild.remove();
   }
 
-  function updateOrderBook(data){
-    let b=0,a=0;
-    data.bids.slice(0,10).forEach(x=>b+=parseFloat(x[1]));
-    data.asks.slice(0,10).forEach(x=>a+=parseFloat(x[1]));
-    state.ob={bid:b,ask:a,spread:parseFloat(data.asks[0][0])-parseFloat(data.bids[0][0])};
-    const imb=((b-a)/(b+a)*100);
-    document.getElementById('imb').textContent=(imb>0?'+':'')+imb.toFixed(1)+'%';
-    document.getElementById('imb').style.color=imb>0?'var(--green)':'var(--red)';
-    document.getElementById('bb-spread').textContent='$'+state.ob.spread.toFixed(2);
-    document.getElementById('bb-bid').textContent=b.toFixed(2);
-    document.getElementById('bb-ask').textContent=a.toFixed(2);
+  function updateOrderBook(data) {
+    if (!data.bids || !data.asks || !data.bids.length || !data.asks.length) return;
+    let b = 0, a = 0;
+    data.bids.slice(0, 10).forEach(x => b += parseFloat(x[1]));
+    data.asks.slice(0, 10).forEach(x => a += parseFloat(x[1]));
+    state.ob = { bid: b, ask: a, spread: parseFloat(data.asks[0][0]) - parseFloat(data.bids[0][0]) };
+    const imb = ((b - a) / (b + a) * 100);
+    document.getElementById('imb').textContent = (imb > 0 ? '+' : '') + imb.toFixed(1) + '%';
+    document.getElementById('imb').style.color = imb > 0 ? 'var(--green)' : 'var(--red)';
+    document.getElementById('bb-spread').textContent = '$' + state.ob.spread.toFixed(2);
+    document.getElementById('bb-bid').textContent = b.toFixed(2);
+    document.getElementById('bb-ask').textContent = a.toFixed(2);
   }
 
-  // ─── WS ───
-  function connect(){
-    const ws=new WebSocket('wss://ws.bitstamp.net');
-    ws.onopen=()=>{
-      ws.send(JSON.stringify({event:'bts:subscribe',data:{channel:'live_trades_btcusd'}}));
-      ws.send(JSON.stringify({event:'bts:subscribe',data:{channel:'order_book_btcusd'}}));
+  // ═══════════════════════════════════════════════════════════
+  //  WEBSOCKET — with heartbeat & error handling
+  // ═══════════════════════════════════════════════════════════
+  function connect() {
+    const ws = new WebSocket('wss://ws.bitstamp.net');
+    let lastMessage = Date.now();
+    let heartbeatInterval;
+
+    ws.onopen = () => {
+      document.getElementById('conn-dot').classList.add('live');
+      ws.send(JSON.stringify({ event: 'bts:subscribe', data: { channel: 'live_trades_btcusd' } }));
+      ws.send(JSON.stringify({ event: 'bts:subscribe', data: { channel: 'order_book_btcusd' } }));
+
+      heartbeatInterval = setInterval(() => {
+        if (Date.now() - lastMessage > 15000) {
+          console.warn('[WS] No data for 15s — reconnecting');
+          ws.close();
+        }
+      }, 5000);
     };
-    ws.onmessage=(e)=>{
-      const m=JSON.parse(e.data);
-      if(m.event==='trade') processTrade(m.data);
-      if(m.channel==='order_book_btcusd'&&m.event==='data') updateOrderBook(m.data);
+
+    ws.onmessage = (e) => {
+      lastMessage = Date.now();
+      try {
+        const m = JSON.parse(e.data);
+        if (m.event === 'trade') queueTrade(m.data);
+        if (m.channel === 'order_book_btcusd' && m.event === 'data') updateOrderBook(m.data);
+      } catch (err) {
+        console.warn('[WS] Parse error:', err);
+      }
     };
-    ws.onclose=()=>setTimeout(connect,2000);
+
+    ws.onerror = (err) => {
+      console.error('[WS] Error:', err);
+      ws.close();
+    };
+
+    ws.onclose = () => {
+      document.getElementById('conn-dot').classList.remove('live');
+      clearInterval(heartbeatInterval);
+      setTimeout(connect, 2000);
+    };
   }
 
-  function onResize(){
-    chart.applyOptions({width:chartWrap.offsetWidth,height:chartWrap.offsetHeight});
-    if(renderer){
-      renderer.setSize(vp.offsetWidth,vp.offsetHeight);
-      camera.aspect=vp.offsetWidth/vp.offsetHeight;
+  // ═══════════════════════════════════════════════════════════
+  //  RESIZE — debounced
+  // ═══════════════════════════════════════════════════════════
+  let _resizeTimer;
+  function onResize() {
+    chart.applyOptions({ width: chartWrap.offsetWidth, height: chartWrap.offsetHeight });
+    if (renderer) {
+      renderer.setSize(vp.offsetWidth, vp.offsetHeight);
+      camera.aspect = vp.offsetWidth / vp.offsetHeight;
       camera.updateProjectionMatrix();
     }
   }
 
-  // ─── INIT ───
+  // ═══════════════════════════════════════════════════════════
+  //  INIT
+  // ═══════════════════════════════════════════════════════════
   function doInit() {
     initScene();
+    initBlipPool();
     onResize();
     animate();
+    state._initialized = true;
   }
 
-  // Wait for viewport to have real pixel dimensions (layout must be complete)
-  let _initTries = 0;
-  function tryInit() {
-    const w = vp.offsetWidth, h = vp.offsetHeight;
-    if (w > 10 && h > 10) {
-      doInit();
-    } else if (_initTries++ < 60) {
-      requestAnimationFrame(tryInit);
-    } else {
-      // Hard fallback after ~1s — use window size minus panel widths
-      vp.style.width  = (window.innerWidth - 460) + 'px';
-      vp.style.height = (window.innerHeight - 84) + 'px';
-      doInit();
+  // Use ResizeObserver for reliable init
+  if (typeof ResizeObserver !== 'undefined') {
+    const resizeObserver = new ResizeObserver(entries => {
+      const { width, height } = entries[0].contentRect;
+      if (width > 10 && height > 10 && !state._initialized) {
+        doInit();
+        resizeObserver.disconnect();
+      }
+    });
+    resizeObserver.observe(vp);
+  } else {
+    // Fallback polling
+    let _initTries = 0;
+    function tryInit() {
+      const w = vp.offsetWidth, h = vp.offsetHeight;
+      if (w > 10 && h > 10) {
+        doInit();
+      } else if (_initTries++ < 60) {
+        requestAnimationFrame(tryInit);
+      } else {
+        vp.style.width  = (window.innerWidth - 460) + 'px';
+        vp.style.height = (window.innerHeight - 84) + 'px';
+        doInit();
+      }
     }
+    requestAnimationFrame(tryInit);
   }
-  requestAnimationFrame(tryInit);
 
   connect();
-  setInterval(runIndicators, 1000);
-  window.addEventListener('resize', onResize);
-  setTimeout(() => radioAnnounce('Radar active. Holding CAP.', 0.65, 0.90), 2000);
+
+  // Indicators — only run when dirty
+  setInterval(() => {
+    if (state._indicatorsDirty) {
+      state._indicatorsDirty = false;
+      runIndicators();
+    }
+  }, 1000);
+
+  window.addEventListener('resize', () => {
+    clearTimeout(_resizeTimer);
+    _resizeTimer = setTimeout(onResize, 150);
+  });
+
+  setTimeout(() => radioAnnounce('Radar active. Holding CAP.', 0.65, 0.90), 4500);
 });
 </script>
 </body>
