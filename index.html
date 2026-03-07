@@ -977,6 +977,37 @@ body::after {
   animation: blipFade 1.8s ease-out forwards;
 }
 @keyframes blipFade { 0%{opacity:.9;transform:scale(1)} 100%{opacity:0;transform:scale(3)} }
+
+/* Enemy target label */
+#enemy-label {
+  position: absolute;
+  display: none;
+  pointer-events: none;
+  transform: translate(-50%, -100%);
+  margin-top: -18px;
+  text-align: center;
+  z-index: 20;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  padding: 4px 10px;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  background: rgba(5,5,12,0.82);
+  white-space: nowrap;
+  text-shadow: 0 0 8px currentColor;
+}
+#enemy-label::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid currentColor;
+}
 </style>
 </head>
 <body>
@@ -1166,6 +1197,9 @@ body::after {
           <div class="reticle-h"></div>
           <div class="reticle-v"></div>
         </div>
+
+        <!-- Enemy target label -->
+        <div id="enemy-label">LONG ENTRY</div>
 
         <!-- Lock corners -->
         <div class="lock-corners" id="lock-corners">
@@ -2434,7 +2468,54 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     renderer.render(scene, camera);
+    updateEnemyLabel();
     updateInstruments();
+  }
+
+  // ─── ENEMY LABEL — projects 3D enemy position to screen ───
+  function updateEnemyLabel() {
+    const el = document.getElementById('enemy-label');
+    if (!el) return;
+
+    if (!enemyJet || enemyState === 'none' || enemyState === 'dying') {
+      el.style.display = 'none';
+      return;
+    }
+
+    // Determine label text + color from trade phase
+    const isLong = enemyDir === 'LONG';
+    const col    = isLong ? 'var(--green)' : 'var(--red)';
+    let phase    = 'ENTRY';
+    if (state.active.length > 0) {
+      const t = state.active[0];
+      if (t.tp1Hit) {
+        phase = 'TP2';
+      } else {
+        phase = 'ENTRY';
+      }
+    }
+    el.textContent = (isLong ? 'LONG ' : 'SHORT ') + phase;
+    el.style.color = col;
+
+    // Project enemy world position → screen coords
+    const worldPos = enemyJet.position.clone();
+    worldPos.y += 4.5;   // offset above the jet
+    worldPos.project(camera);
+
+    // worldPos is now in NDC (-1..1). Convert to CSS pixels.
+    const vpRect = vp.getBoundingClientRect();
+    const sx = (worldPos.x *  0.5 + 0.5) * vpRect.width;
+    const sy = (worldPos.y * -0.5 + 0.5) * vpRect.height;
+
+    // Hide if behind camera (z > 1) or off-screen
+    if (worldPos.z > 1 || sx < -100 || sx > vpRect.width + 100 || sy < -50 || sy > vpRect.height + 50) {
+      el.style.display = 'none';
+      return;
+    }
+
+    el.style.display  = 'block';
+    el.style.left     = sx + 'px';
+    el.style.top      = sy + 'px';
   }
 
   // ─── INSTRUMENTS ───
