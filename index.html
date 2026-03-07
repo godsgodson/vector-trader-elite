@@ -1492,6 +1492,10 @@ if (synth) {
 const _radioPlaying = { active: false };
 const _radioQueue   = [];   // [{text,pitch,rate,priority}]
 const _radioCooldowns = {}; // key→timestamp
+let _lastRadioTime = Date.now();  // track last time anything was spoken
+
+// Intercept _playNext to update last radio time
+const _origPlayNext_ref = { fn: null };
 
 function _cancelSpeech() {
   if (typeof responsiveVoice !== 'undefined') responsiveVoice.cancel();
@@ -1501,6 +1505,7 @@ function _cancelSpeech() {
 function _playNext() {
   if (_radioPlaying.active || _radioQueue.length === 0) return;
   _radioPlaying.active = true;
+  _lastRadioTime = Date.now();   // reset silence timer whenever something plays
   const { text, pitch, rate } = _radioQueue.shift();
   const done = () => { _radioPlaying.active = false; setTimeout(_playNext, 120); };
   if (typeof responsiveVoice !== 'undefined' && responsiveVoice.voiceSupport()) {
@@ -1527,7 +1532,7 @@ function radioOnce(key, text, cooldownMs, pitch=0.65, rate=0.90) {
 
 // P1 — trade info. Cancels any queued P2, won't interrupt active P0/P1.
 function radioAnnounce(text, pitch=0.60, rate=0.90) {
-  // Drop any queued P2 chatter
+  _lastRadioTime = Date.now();
   for (let i = _radioQueue.length-1; i >= 0; i--) {
     if (_radioQueue[i].priority >= 1) _radioQueue.splice(i, 1);
   }
@@ -1537,6 +1542,7 @@ function radioAnnounce(text, pitch=0.60, rate=0.90) {
 
 // P0 — critical. Cancels everything including current speech.
 function radioUrgent(text, pitch=0.62, rate=0.90) {
+  _lastRadioTime = Date.now();
   _radioQueue.length = 0;
   _cancelSpeech();
   _radioPlaying.active = false;
@@ -1545,6 +1551,44 @@ function radioUrgent(text, pitch=0.62, rate=0.90) {
 }
 
 // ─────────────────────────────────────────────────────────────
+
+// ── Pilot idle chatter — fires if radio silent for >50s while active ──
+const PILOT_QUIPS = [
+  "How's the weather out there?",
+  "Don't forget to like and follow.",
+  "Join the squad!",
+  "Thanks for watching Vector Trader.",
+  "Bitcoin is the future.",
+  "How high can we run it up today?",
+  "What's it gonna be buddy, long or short?",
+  "Tell your mom I said hi.",
+  "What does this button do?",
+  "Who's the man? I'm the man!",
+  "My sensors are telling me you haven't clicked the like button.",
+];
+let _quipIndex = 0;
+let _lastQuipTime = 0;
+
+function checkPilotChatter(now) {
+  // Fire a quip if we've had >50s of silence during active action (max 60s gap)
+  const inAction = typeof state !== 'undefined' &&
+    (state.active.length > 0 || (typeof enemyState !== 'undefined' &&
+      (enemyState === 'dogfight' || enemyState === 'approaching')));
+  if (!inAction) { _lastRadioTime = now; return; }  // reset clock when idle so silence restarts fresh
+
+  const silenceMs = now - _lastRadioTime;
+  if (silenceMs < 50000) return;           // under 50s — no quip needed
+  if (now - _lastQuipTime < 52000) return; // cooldown between quips
+  if (_radioPlaying.active) return;        // already talking
+  if (_radioQueue.length > 0) return;      // something queued
+
+  _lastQuipTime = now;
+  _lastRadioTime = now;
+  const quip = PILOT_QUIPS[_quipIndex % PILOT_QUIPS.length];
+  _quipIndex++;
+  _radioQueue.push({ text: quip, pitch: 0.67, rate: 0.91, priority: 2 });
+  _playNext();
+}
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -2374,7 +2418,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── Ground scroll speed scales with |velocity| ──
     // Base speed + strong multiplier so fast price moves = fast ground rush
     const absVel = Math.abs(state.vel);
-    const groundSpeed = 15.0 + absVel * 200;   // vel is fractional (0.001 typical), so *200 gives noticeable range
+    const groundSpeed = 15.0 + absVel * 200;  // 15 = fighter jet cruise
     groundOffset = (groundOffset + groundSpeed * dt) % GRID_STEP;
 
     // Scroll lateral lines by adjusting their Z position cyclically
@@ -2456,6 +2500,7 @@ document.addEventListener('DOMContentLoaded', () => {
       mgBurstCount = 0;
     }
     updateStars(dt);
+    checkPilotChatter(now);
 
     // Screen shake — camera only, not the jet
     if (shakeTimer > 0) {
@@ -3102,7 +3147,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // ── Stop hit ──
       if ((L && p <= t.stop) || (!L && p >= t.stop)) {
         // After TP1 stop is at breakeven, so this is always 0R or better
-        const result = t.tp1Hit ? Math.max(0, rawR) : -1;
+        const result = t.tp2Hit ? Math.max(1.5, rawR) : t.tp1Hit ? Math.max(0, rawR) : -1;
         closeTrade(t, result);
         return;
       }
@@ -3177,21 +3222,31 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let i = 0; i < 3; i++) setTimeout(() => fireMissile(t.dir), 200 + i * 150);
         setTimeout(() => {
           triggerEnemyDeath();
-          closeTrade(t, 4.0);
+          const finalR = L ? (state.price - t.entry) / risk : (t.entry - state.price) / risk;
+          closeTrade(t, Math.max(3.0, Math.min(8.0, finalR)));
         }, 900);
         return;
       }
 
-      // ── Trailing stop after TP2 — trail 1.5R below highest point ──
+      // ── Trailing stop after TP2 — tighter trail so TP3 chase doesn't give back profit ──
       if (t.tp2Hit) {
         const peak = L
           ? Math.max(t._peak || p, p)
           : Math.min(t._peak || p, p);
         t._peak = peak;
-        const trailStop = L ? peak - risk * 1.5 : peak + risk * 1.5;
-        // Only move stop in our favour
+        // Trail only 0.7R — tight leash. If price stalls, bank TP2 profit quickly.
+        const trailStop = L ? peak - risk * 0.7 : peak + risk * 0.7;
         if (L && trailStop > t.stop) t.stop = trailStop;
         if (!L && trailStop < t.stop) t.stop = trailStop;
+
+        // TP3 timeout: if we've been hunting TP3 for more than 8 minutes, take profit now
+        if (!t._tp3StartTime) t._tp3StartTime = now;
+        if (now - t._tp3StartTime > 480000 && !t._tp3Fired) {
+          t._tp3Fired = true;
+          radioAnnounce('TP3 timeout. Banking profit. RTB.', 0.65, 0.90);
+          const snapR = L ? (p - t.entry) / risk : (t.entry - p) / risk;
+          setTimeout(() => closeTrade(t, Math.max(1.0, snapR)), 400);
+        }
       }
     });
 
