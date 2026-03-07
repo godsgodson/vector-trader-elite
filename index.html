@@ -2263,7 +2263,8 @@ document.addEventListener('DOMContentLoaded', () => {
       hostileSpawnCooldown -= dt;
       const t = state.active[0];
       const isL = t.dir === 'LONG';
-      const risk = Math.abs(t.entry - t.stop);
+      const risk = t.originalRisk || Math.abs(t.entry - t.stop);
+      if (!risk || risk <= 0) return;
       const rawR = isL ? (state.price - t.entry)/risk : (t.entry - state.price)/risk;
       const inDrawdown = rawR < -0.3 && !t.tp1Hit;
       if (inDrawdown && hostileSpawnCooldown <= 0 && hostiles.length < 2) {
@@ -2485,16 +2486,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // Determine label text + color from trade phase
     const isLong = enemyDir === 'LONG';
     const col    = isLong ? 'var(--green)' : 'var(--red)';
-    let phase    = 'ENTRY';
+    let phase = 'ENTRY';
     if (state.active.length > 0) {
       const t = state.active[0];
-      if (t.tp1Hit) {
-        phase = 'TP2';
-      } else {
-        phase = 'ENTRY';
-      }
+      if (t.tp2Hit)      phase = 'TP3';
+      else if (t.tp1Hit) phase = 'TP2';
+      else               phase = 'TP1';
     }
-    el.textContent = (isLong ? 'LONG ' : 'SHORT ') + phase;
+    // Before trade entry — this is the entry bogey
+    const labelText = state.active.length === 0
+      ? (isLong ? 'LONG ENTRY' : 'SHORT ENTRY')
+      : (isLong ? 'LONG ' : 'SHORT ') + phase;
+    el.textContent = labelText;
     el.style.color = col;
 
     // Project enemy world position → screen coords
@@ -2654,23 +2657,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const t = state.active[0];
     const p = state.price;
+    if (!p || p <= 0) return;
     const isL = t.dir === 'LONG';
-    const risk = Math.abs(t.entry - t.stop);
+    // Always use originalRisk — immune to stop moves
+    const risk = t.originalRisk;
+    if (!risk || risk <= 0) return;
     const rawR = isL ? (p - t.entry) / risk : (t.entry - p) / risk;
-    const unreal = rawR + (t.tp1Hit ? 0.75 : 0);
+    // Clamp display to reasonable range — no Inf
+    const unreal = Math.max(-2, Math.min(8, rawR));
 
     const dirEl = document.getElementById('op-dir');
-    dirEl.textContent = t.dir;
+    // Show current phase
+    const phase = t.tp2Hit ? ' TP3' : t.tp1Hit ? ' TP2' : ' ENTRY';
+    dirEl.textContent = t.dir + phase;
     dirEl.style.color = isL ? 'var(--green)' : 'var(--red)';
 
     const urEl = document.getElementById('op-unreal');
     urEl.textContent = (unreal >= 0 ? '+' : '') + unreal.toFixed(2) + 'R';
-    urEl.style.color = unreal > 0 ? 'var(--green)' : (unreal < -0.3 ? 'var(--red)' : 'var(--yellow)');
+    urEl.style.color = unreal > 0.5 ? 'var(--green)' : (unreal < -0.3 ? 'var(--red)' : 'var(--yellow)');
 
-    const distTP1 = isL ? (t.tp1 - p) : (p - t.tp1);
-    const distSL  = isL ? (p - t.stop) : (t.stop - p);
-    document.getElementById('op-dist-tp1').textContent = '$' + Math.abs(distTP1).toFixed(0) + (distTP1 <= 0 ? ' ✓' : '');
-    document.getElementById('op-dist-tp1').style.color = distTP1 <= 0 ? 'var(--green)' : 'var(--text)';
+    // Show next target distance
+    const nextTP = t.tp2Hit ? t.tp3 : t.tp1Hit ? t.tp2 : t.tp1;
+    const distNext = isL ? (nextTP - p) : (p - nextTP);
+    const distSL   = isL ? (p - t.stop) : (t.stop - p);
+    document.getElementById('op-dist-tp1').textContent = '$' + Math.abs(distNext).toFixed(0) + (distNext <= 0 ? ' ✓' : '');
+    document.getElementById('op-dist-tp1').style.color = distNext <= 0 ? 'var(--green)' : 'var(--text)';
     document.getElementById('op-dist-sl').textContent = '$' + Math.abs(distSL).toFixed(0);
     document.getElementById('op-dist-sl').style.color = distSL < risk * 0.3 ? 'var(--red)' : 'var(--text)';
 
@@ -2957,21 +2968,22 @@ document.addEventListener('DOMContentLoaded', () => {
         // Use 1.0× ATR stop (tighter = smaller loss if wrong)
         // TP1 at 1.0× risk (1:1 R:R — partial exit to lock profit)
         // TP2 at 2.0× risk (trail to breakeven after TP1)
-        const useATR  = Math.max(atr, 30);    // floor at $30 to avoid div-by-zero on fresh data
+        const useATR  = Math.max(atr, 50);    // floor $50 — realistic BTC stop
         const entry   = price;
         const stop    = isL ? entry - useATR : entry + useATR;
         const risk    = Math.abs(entry - stop);
-        const tp1     = isL ? entry + risk       : entry - risk;        // 1:1
-        const tp2     = isL ? entry + risk * 2.2 : entry - risk * 2.2; // 2.2:1
+        const tp1     = isL ? entry + risk       : entry - risk;        // 1:1 R
+        const tp2     = isL ? entry + risk * 2.2 : entry - risk * 2.2; // 2.2:1 R
+        const tp3     = isL ? entry + risk * 4.0 : entry - risk * 4.0; // 4:1 R runner
 
         document.getElementById('p-entry').textContent = '$'+entry.toFixed(0);
         document.getElementById('p-stop').textContent  = '$'+stop.toFixed(0);
         document.getElementById('p-tp1').textContent   = '$'+tp1.toFixed(0);
-        document.getElementById('p-tp2').textContent   = '$'+tp2.toFixed(0);
+        document.getElementById('p-tp2').textContent   = '$'+tp2.toFixed(0)+ ' / $'+tp3.toFixed(0);
 
         if (state.active.length === 0 && now > state.cooldownUntil) {
           const lastClose = state.closed[state.closed.length-1]?.closeTime || 0;
-          if (now - lastClose > 30000) {   // 30s minimum gap — don't spam
+          if (now - lastClose > 20000) {   // 20s gap between trades
             enterTrade(dir, entry, stop, tp1, tp2);
           }
         }
@@ -2997,137 +3009,217 @@ document.addEventListener('DOMContentLoaded', () => {
     checkTrades();
   }
 
+  // Called when signal fires — jet is already dogfighting the ENTRY bogey.
+  // We fire bursts + missile to "shoot it down", which confirms the trade entry.
+  // Then a fresh TP1 bogey spawns for the next fight.
   function enterTrade(dir,entry,stop,tp1,tp2){
-    const t = {id:Date.now(),time:Date.now(),dir,entry,stop,tp1,tp2,tp1Hit:false,pnl:0};
+    const risk = Math.abs(entry - stop);
+    const tp3  = dir === 'LONG' ? entry + risk * 4.0 : entry - risk * 4.0;
+    const t = {
+      id: Date.now(), time: Date.now(), dir, entry,
+      stop, tp1, tp2, tp3,
+      originalRisk: risk,
+      tp1Hit: false, tp2Hit: false,
+      pnl: 0
+    };
     state.active.push(t);
     enemyWingDamaged = false;
-    document.getElementById('bb-active').textContent=state.active.length;
+    document.getElementById('bb-active').textContent = state.active.length;
     addSignalLog(t, 'open');
 
-    // ── Entry radio — guns, not missiles yet ──
     if (dir === 'LONG') {
       radioAnnounce('Tally. Going long. Guns.', 0.65, 0.90);
     } else {
       radioAnnounce('Tally. Going short. Guns.', 0.65, 0.90);
     }
 
-    // Transition enemy from approaching → dogfight
+    // Make sure enemy is in dogfight
     if (enemyJet && enemyState === 'approaching') {
-      enemyState = 'dogfight';
-      enemyAge = 0;
-    } else {
-      spawnEnemy(dir);
-      setTimeout(() => { if (enemyState === 'approaching') { enemyState = 'dogfight'; enemyAge = 0; } }, 800);
+      enemyState = 'dogfight'; enemyAge = 0;
     }
     jetMode = 'dogfight'; jetModeAge = 0;
-    // Initial MG burst on entry — no missiles yet
-    for (let i = 0; i < 3; i++) {
-      setTimeout(() => fireMachineGun(), i * 180);
+
+    // Fire burst + kill missile at ENTRY bogey — shooting it down confirms entry
+    for (let i = 0; i < 5; i++) setTimeout(() => fireMachineGun(), i * 120);
+    setTimeout(() => {
+      fireMissile(dir);   // kill shot
+      hitFlash();
+    }, 700);
+    // Kill the entry bogey and spawn TP1 bogey after it goes down
+    setTimeout(() => {
+      triggerEnemyDeath();
+      // Spawn fresh TP1 enemy after explosion clears
+      setTimeout(() => {
+        if (state.active.length > 0) {
+          spawnEnemy(dir);
+          enemyState = 'dogfight'; enemyAge = 0;
+        }
+      }, 1800);
+    }, 1100);
+  }
+
+  function hitFlash() {
+    if (!enemyJet) return;
+    enemyJet.traverse(child => {
+      if (child.material && child.material.color) {
+        const orig = child.material.color.getHex();
+        child.material.color.setHex(0xffffff);
+        setTimeout(() => { if (child.material) child.material.color.setHex(orig); }, 180);
+      }
+    });
+  }
+
+  function addWingSmoke() {
+    if (!enemyJet) return;
+    const pCount = 12;
+    const pPos = new Float32Array(pCount * 3);
+    for (let pi = 0; pi < pCount; pi++) {
+      pPos[pi*3]   = (Math.random()-0.5)*0.6;
+      pPos[pi*3+1] = (Math.random()-0.5)*0.5;
+      pPos[pi*3+2] = pi * 0.65;
     }
+    const sGeo = new THREE.BufferGeometry();
+    sGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+    const sMat = new THREE.PointsMaterial({ color: 0xcccccc, size: 0.65, transparent: true, opacity: 0.7, depthWrite: false });
+    const smoke = new THREE.Points(sGeo, sMat);
+    enemyJet.add(smoke);
+    smoke.position.set(4.5, -0.1, 0);
   }
 
   function checkTrades(){
     const p = state.price;
+    if (!p || p <= 0) return;
     const now = Date.now();
+
     state.active.forEach(t => {
       if (t.status === 'closed') return;
       const L = t.dir === 'LONG';
-      const risk = Math.abs(t.entry - t.stop);
-      const rawR = L ? (p - t.entry)/risk : (t.entry - p)/risk;
+      // Always use originalRisk — never divide by a moved stop
+      const risk = t.originalRisk;
+      if (!risk || risk <= 0) return;   // guard against bad init — skip
+      const rawR = L ? (p - t.entry) / risk : (t.entry - p) / risk;
 
-      // Timeout: if no TP1 after 10min, exit flat
-      if (!t.tp1Hit && now - t.time > 600000) {
+      // ── Stop hit ──
+      if ((L && p <= t.stop) || (!L && p >= t.stop)) {
+        // After TP1 stop is at breakeven, so this is always 0R or better
+        const result = t.tp1Hit ? Math.max(0, rawR) : -1;
+        closeTrade(t, result);
+        return;
+      }
+
+      // ── Timeout: 12 min without TP1 → exit flat ──
+      if (!t.tp1Hit && now - t.time > 720000) {
         closeTrade(t, 0);
         return;
       }
 
-      // Stop hit
-      if ((L && p <= t.stop) || (!L && p >= t.stop)) {
-        closeTrade(t, t.tp1Hit ? 0 : -1);
-        return;
-      }
-
-      // Drawdown radio calls (one-shot flags to avoid repeat)
+      // ── Drawdown radio (pre-TP1 only) ──
       if (!t.tp1Hit && rawR < -0.5 && !t._warnedHalf) {
         t._warnedHalf = true;
         radioAnnounce('Taking fire. Holding.', 0.65, 0.90);
+        // MG burst when under fire
+        for (let i = 0; i < 3; i++) setTimeout(() => fireMachineGun(), i * 160);
       }
       if (!t.tp1Hit && rawR < -0.8 && !t._warnedStop) {
         t._warnedStop = true;
         radioAnnounce('Stop approaching.', 0.64, 0.90);
       }
 
-      // TP1 hit — fire missile, damage enemy wing, trail to breakeven
+      // ── TP1 hit — burst + missile kills TP1 bogey, spawn TP2 bogey ──
       if (!t.tp1Hit && ((L && p >= t.tp1) || (!L && p <= t.tp1))) {
         t.tp1Hit = true;
-        t.stop = t.entry;
-        enemyWingDamaged = true;
+        t.stop = t.entry;   // stop → breakeven
         radioAnnounce('Bullseye. Stop to entry. Fox two out.', 0.66, 0.90);
-        // Fire one homing missile — wing hit, not kill
-        setTimeout(() => fireMissile(t.dir), 200);
-        // Damage effect on enemy wing
-        if (enemyJet) {
+        // Heavy burst then kill missile
+        for (let i = 0; i < 6; i++) setTimeout(() => fireMachineGun(), i * 100);
+        setTimeout(() => { fireMissile(t.dir); hitFlash(); }, 650);
+        setTimeout(() => {
+          triggerEnemyDeath();   // blow up TP1 bogey
+          // Spawn fresh TP2 bogey
           setTimeout(() => {
-            if (!enemyJet) return;
-            // Flash enemy orange to show hit
-            enemyJet.traverse(child => {
-              if (child.material && child.material.color) {
-                const orig = child.material.color.getHex();
-                child.material.color.setHex(0xffffff);
-                setTimeout(() => { if (child.material) child.material.color.setHex(orig); }, 200);
-              }
-            });
-            // Smoke puff points attached to enemy wing
-            const pCount = 10;
-            const pPos = new Float32Array(pCount * 3);
-            for (let pi = 0; pi < pCount; pi++) {
-              pPos[pi*3]   = (Math.random()-0.5)*0.5;
-              pPos[pi*3+1] = (Math.random()-0.5)*0.5;
-              pPos[pi*3+2] = pi * 0.7;
+            if (state.active.length > 0) {
+              spawnEnemy(t.dir);
+              enemyState = 'dogfight'; enemyAge = 0;
+              radioAnnounce('New bogey. Hunting TP2.', 0.65, 0.90);
             }
-            const sGeo = new THREE.BufferGeometry();
-            sGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
-            const sMat = new THREE.PointsMaterial({ color: 0xcccccc, size: 0.6, transparent: true, opacity: 0.65, depthWrite: false });
-            const smoke = new THREE.Points(sGeo, sMat);
-            if (enemyJet) enemyJet.add(smoke);
-            smoke.position.set(4.5, -0.1, 0); // on wing
-          }, 800);
-        }
+          }, 1800);
+        }, 1000);
       }
 
-      // TP2 hit — kill missile, full close
-      if (t.tp1Hit && ((L && p >= t.tp2) || (!L && p <= t.tp2))) {
-        radioUrgent('Splash one. RTB.', 0.62, 0.90);
-        // Fire kill salvo then close
-        for (let i = 0; i < 3; i++) setTimeout(() => fireMissile(t.dir), i*150);
-        setTimeout(() => closeTrade(t, 2.2), 600);
+      // ── TP2 hit — kill TP2 bogey, spawn TP3 bogey ──
+      if (t.tp1Hit && !t.tp2Hit && ((L && p >= t.tp2) || (!L && p <= t.tp2))) {
+        t.tp2Hit = true;
+        t.stop = t.tp1;   // lock in 1R minimum
+        radioAnnounce('Fox two. Splash. Hunting TP3.', 0.65, 0.90);
+        for (let i = 0; i < 6; i++) setTimeout(() => fireMachineGun(), i * 90);
+        setTimeout(() => fireMissile(t.dir), 300);
+        setTimeout(() => fireMissile(t.dir), 550);
+        setTimeout(() => {
+          hitFlash();
+          triggerEnemyDeath();   // blow up TP2 bogey
+          // Spawn fresh TP3 bogey
+          setTimeout(() => {
+            if (state.active.length > 0) {
+              spawnEnemy(t.dir);
+              enemyState = 'dogfight'; enemyAge = 0;
+              radioAnnounce('Final bogey. TP3 in sight.', 0.65, 0.90);
+            }
+          }, 1800);
+        }, 900);
+      }
+
+      // ── TP3 hit — kill salvo, close, victory ──
+      if (t.tp2Hit && ((L && p >= t.tp3) || (!L && p <= t.tp3))) {
+        if (t._tp3Fired) return;   // guard double-fire
+        t._tp3Fired = true;
+        radioUrgent('Splash one. RTB. Good kill.', 0.62, 0.90);
+        for (let i = 0; i < 5; i++) setTimeout(() => fireMachineGun(), i * 80);
+        for (let i = 0; i < 3; i++) setTimeout(() => fireMissile(t.dir), 200 + i * 150);
+        setTimeout(() => {
+          triggerEnemyDeath();
+          closeTrade(t, 4.0);
+        }, 900);
+        return;
+      }
+
+      // ── Trailing stop after TP2 — trail 1.5R below highest point ──
+      if (t.tp2Hit) {
+        const peak = L
+          ? Math.max(t._peak || p, p)
+          : Math.min(t._peak || p, p);
+        t._peak = peak;
+        const trailStop = L ? peak - risk * 1.5 : peak + risk * 1.5;
+        // Only move stop in our favour
+        if (L && trailStop > t.stop) t.stop = trailStop;
+        if (!L && trailStop < t.stop) t.stop = trailStop;
       }
     });
+
     state.active = state.active.filter(t => t.status !== 'closed');
     document.getElementById('bb-active').textContent = state.active.length;
   }
 
   function closeTrade(t,r){
+    if (t.status === 'closed') return;   // guard double-close
     t.status='closed'; t.pnl=r; t.closeTime=Date.now();
-    if(r>0) state.wins++; else state.losses++;
+    if(r>0) state.wins++; else if(r<0) state.losses++;
     state.pnl += r*100;
     state.closed.push(t);
-    state.cooldownUntil = Date.now() + 60000;
+    state.cooldownUntil = Date.now() + 25000;  // 25s cooldown — stay active
 
-    // Combat outcome
-    if (r >= 2.0) {
-      // TP2 full kill — already announced in checkTrades via radioUrgent
-      triggerEnemyDeath();
-    } else if (r > 0) {
-      // Partial win
-      radioUrgent('Splash one. Good kill.', 0.63, 0.90);
-      triggerEnemyDeath();
+    // Combat outcome — TP kills already handled in checkTrades (bogey already dead)
+    // Only handle stop/breakeven/timeout here
+    if (r >= 1.0) {
+      // Win — bogey already killed by missile salvo in checkTrades
+      // Just do waggle if not already doing it
+      if (jetMode !== 'waggle') { jetMode = 'waggle'; jetModeAge = 0; }
     } else if (r === 0) {
       radioAnnounce('Breakeven. Returning to CAP.', 0.66, 0.90);
-      triggerEnemyEscape();
+      if (enemyJet) triggerEnemyEscape();
     } else {
+      // Stop loss — enemy wins, shoots us
       radioAnnounce('Defensive maneuvers. Egress.', 0.65, 0.90);
-      triggerEnemyEscape();
+      if (enemyJet) triggerEnemyEscape();
     }
     // Clear hostile bogeys when trade closes
     hostiles.forEach(h => scene.remove(h.group));
@@ -3167,11 +3259,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if(durEl) durEl.textContent=`${avgMin}m${avgSec}s`;
     }
 
-    // Avg R:R (only wins)
-    const winRs = state.closed.filter(x=>x.pnl>0).map(x=>x.pnl);
-    const avgRR = winRs.length>0 ? winRs.reduce((a,b)=>a+b,0)/winRs.length : null;
+    // Avg R:R — expectancy across all trades
+    const allRs = state.closed.map(x => x.pnl);
+    const avgRR = allRs.length > 0 ? allRs.reduce((a,b)=>a+b,0)/allRs.length : null;
     const rrEl = document.getElementById('p-rr');
-    if(rrEl) rrEl.textContent = avgRR ? avgRR.toFixed(1)+'R' : '——';
+    if(rrEl) rrEl.textContent = avgRR !== null ? (avgRR>=0?'+':'')+avgRR.toFixed(1)+'R' : '——';
 
     document.getElementById('p-wins').textContent=state.wins;
     document.getElementById('p-losses').textContent=state.losses;
